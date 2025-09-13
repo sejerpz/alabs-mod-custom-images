@@ -1,0 +1,155 @@
+#!/bin/bash
+if [ -z "$1" ]
+  then
+	echo "No tar base image supplied"
+	echo "\tusage: create-image <base-image-name.tar> <custom-version-name> <source base folder>"
+	exit 1
+fi
+if [ -z "$2" ]
+  then
+	echo "No version name supplied"
+	echo "\tusage: create-image <base-image-name.tar> <custom-version-name> <source base folder>"
+	exit 1
+fi
+if [ -z "$3" ]
+  then
+	echo "No src base dir supplied"
+	echo "\tusage: create-image <base-image-name.tar> <custom-version-name> <source base folder>"
+	exit 1
+fi
+
+TAR_BASE_IMAGE=$1
+VERSION=$2
+filename=$(basename -- "$TAR_BASE_IMAGE")
+TAR_NAME="${filename%.*}"
+IMAGE_NAME="$TAR_NAME-$VERSION"
+SRC_DIR=$3
+VER_IMAGE=${TAR_NAME#*-}
+VER_BASE=${VER_IMAGE%.*}
+VER_BASE_BUILD=${VER_IMAGE:${#VER_BASE}+1:10}
+
+echo 'MOD IMAGE BUILDER'
+echo '    base image..: ' $IMAGE_NAME
+echo '    source dir..: ' $SRC_DIR
+echo '    custom build: ' $VERSION
+echo ' '
+read -p 'Press ENTER key to start' PROCEED
+
+echo -n 'Source dir sanity check...'
+if [ -z $IMAGE_NAME ]; then
+	echo 'image name is empty'
+	exit 1
+fi
+# check mod ui sources
+if [ ! -d $SRC_DIR/mod-ui ]; then
+	echo '    [ERR] MOD-UI sources not found in ' $SRC_DIR'/mod-ui'
+	exit 1
+fi
+# check mod dwarf controller
+if [ ! -d $SRC_DIR/mod-dwarf-controller ]; then
+	echo '    [ERR] MOD-DWARF-CONTROLLER sources not found in ' $SRC_DIR'/mod-dwarf-controller'
+	exit 1
+fi
+
+CONTROLLER_GIT_HASH=`git -C $SRC_DIR/mod-dwarf-controller rev-parse HEAD`
+CONTROLLER_GIT_DATE=`git -C $SRC_DIR/mod-dwarf-controller show --no-patch --format=%cd HEAD`
+if [ ! $? -eq 0 ]; then
+	exit 1
+fi
+
+echo 'passed'
+
+echo 'Cleaning up'
+rm -rf $IMAGE_NAME
+
+echo 'Setup dir'
+mkdir $IMAGE_NAME
+
+echo 'Extracting original tar image: ' $TAR_BASE_IMAGE
+tar -xf $TAR_BASE_IMAGE -C $IMAGE_NAME
+
+echo 'Extracting original system image: ' $TAR_BASE_IMAGE
+BASE_SYSTEM_DIR=$IMAGE_NAME/tmp/system
+mkdir -p $BASE_SYSTEM_DIR
+sudo tar -xf $IMAGE_NAME/system.tar.xz -C $BASE_SYSTEM_DIR
+if [ -z $IMAGE_NAME ]; then
+	echo 'not doing chown IMAGE_NAME is empty'
+else
+	sudo chown -R $USER:$USER $IMAGE_NAME/
+fi
+rm -f $IMAGE_NAME/system.tar.xz 
+
+echo 'Removing original files'
+rm -rf $BASE_SYSTEM_DIR/usr/lib/python3.4/site-packages/modtools/*
+rm -rf $BASE_SYSTEM_DIR/usr/lib/python3.4/site-packages/mod/*
+rm -rf $BASE_SYSTEM_DIR/usr/share/mod/html/*
+
+echo 'Copying new files'
+cp -ar $SRC_DIR/mod-ui/utils/libmod_utils.so $BASE_SYSTEM_DIR/usr/lib/python3.4/site-packages/modtools/
+cp -ar $SRC_DIR/mod-ui/modtools/* $BASE_SYSTEM_DIR/usr/lib/python3.4/site-packages/modtools/
+cp -ar $SRC_DIR/mod-ui/mod/* $BASE_SYSTEM_DIR/usr/lib/python3.4/site-packages/mod/
+cp -ar $SRC_DIR/mod-ui/html/* $BASE_SYSTEM_DIR/usr/share/mod/html/
+
+# remove some unused dirs
+rm -rf $BASE_SYSTEM_DIR/usr/lib/python3.4/site-packages/mod/old
+rm -rf $BASE_SYSTEM_DIR/usr/lib/python3.4/site-packages/mod/knob-utils
+rm -rf $BASE_SYSTEM_DIR/usr/lib/python3.4/site-packages/mod/__pycache__/*
+rm -rf $BASE_SYSTEM_DIR/usr/lib/python3.4/site-packages/modtools/__pycache__/*
+
+echo 'Update mod-os release'
+
+
+echo 'Adding firmware'
+cp -ar $SRC_DIR/mod-dwarf-controller/out/mod-dwarf-controller.bin $IMAGE_NAME/
+if [ ! $? -eq 0 ]; then
+	echo 'Cannot copy mod warf controller firmware'
+	exit 1
+fi
+
+echo 'Creating versions file'
+# controller firmware
+CONTROLLER_DATE=`date '+%Y %b %d %T'`
+cat > $BASE_SYSTEM_DIR/etc/mod-release/controller <<EOL
+generated=${CONTROLLER_DATE}
+revision=${CONTROLLER_GIT_HASH}
+EOL
+
+# os release
+cat > $BASE_SYSTEM_DIR/etc/mod-release/release<<EOL
+${VER_IMAGE}-${VERSION}
+EOL
+
+cat > $IMAGE_NAME/VERSIONS  <<EOL
+version=${VER_BASE}
+build=${VER_BASE_BUILD}-${VERSION}
+version.build=${VER_IMAGE}-${VERSION}
+label=
+restore=48de0f238fdb1ff138a734a1272c
+system=ad7d8147f481107c515c5d3e690ba673848f369b
+controller=${CONTROLLER_GIT_HASH}
+platform=moddwarf
+EOL
+
+echo 'Repacking system distribution' 
+tar cfJ $IMAGE_NAME/system.tar.xz -C $BASE_SYSTEM_DIR .
+
+echo 'Calculating checksum'
+rm -f $IMAGE_NAME/SHA1SUMS
+sha1sum $IMAGE_NAME/mod-dwarf-controller.bin | sed "s/$IMAGE_NAME\///" >> $IMAGE_NAME/SHA1SUMS
+sha1sum $IMAGE_NAME/restore.tar.xz | sed "s/${IMAGE_NAME}\///" >> $IMAGE_NAME/SHA1SUMS
+sha1sum $IMAGE_NAME/system.tar.xz | sed "s/${IMAGE_NAME}\///" >> $IMAGE_NAME/SHA1SUMS
+sha1sum $IMAGE_NAME/VERSIONS | sed "s/${IMAGE_NAME}\///" >> $IMAGE_NAME/SHA1SUMS
+
+echo 'Cleanup image folder'
+rm -rf $IMAGE_NAME/tmp
+
+echo 'Packing image file'
+tar cf $IMAGE_NAME.tar -C $IMAGE_NAME .
+
+echo 'Cleanup'
+rm -rf $IMAGE_NAME
+
+echo 'DONE!'
+
+exit 0
+
