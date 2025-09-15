@@ -2,9 +2,9 @@
 <html lang="it">
 <head>
     <meta charset="UTF-8">
-
     <base href="/">
-    
+    <link rel="stylesheet" href="/tools/groupify.css">
+
     <script type="importmap">
     {
         "imports": {
@@ -27,8 +27,41 @@
     <title>Groupify</title>
 </head>
 <body>
-    <div id="app">
-       {{ message }}
-       <button @click="get_plugin_list">list</button>
+    <div id="app" class="app-container">
+        <div class="header">
+            <button @click="get_plugin_list">list</button>
+            <span v-if="selected_plugin" class="selected-plugin">{{selected_plugin.label}}</span>
+        </div>
+        <div class="plugin-list">
+            <ul>
+                <li v-for="plugin in plugins" 
+                    :key="plugin.id"
+                    data-id="{{plugin.id}}"
+                    :class="plugin.selected ? 'selected' : ''"
+                    class="plugin-item"
+                    @click="select_plugin(plugin.id)">
+                    {{ plugin.label }}
+                </li>
+            </ul>
+        </div>
+
+        <div class="plugin-info">
+            <span v-if="!selected_plugin">Select a plugin from the left list</span>
+            <div v-if="selected_plugin" class="plugin-info-ttl">{{ selected_ttl }}</div>
+            <div v-if="selected_plugin" class="plugin-info-preview">
+                <div v-for="port in ports"
+                     class="port-control" :class="port.selected ? 'selected' : ''"
+                     @click="toggle_port_selection(port.id)">
+                        <span class="port-label">{{port.label}}</span>
+                        <span class="port-group">{{port.group}}</span>
+                </div>
+            </div>
+            <div v-if="selected_plugin" class="plugin-info-palette">
+                <div v-for="group in groups" class="group-button"
+                     @click="set_selected_port_group(group.id)">
+                    {{group.label}}
+                </div>
+            </div>
+        </div>
     </div>
 </body>
