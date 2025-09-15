@@ -6,7 +6,7 @@ However, some features are still missing.
 Thanks to MOD Audio, most of the software stack is open source.  
 This creates an opportunity to extend the system and address these gaps.  
 
-## Improvements in This Image
+## Improvements in this image
 
 This custom image introduces the following enhancements:
 
@@ -15,7 +15,7 @@ This custom image introduces the following enhancements:
 - **Extended control** over which parameters are included in snapshots  
 - **On-device editing** of pedalboard parameters directly from the Dwarf  
 
-# How to Install the MOD Dwarf aLabs Image
+# How to Install the MOD Dwarf aLabs image
 
 To test this new image, follow the standard update procedure for the MOD Dwarf as described in the official documentation:
 
