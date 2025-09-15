@@ -17,7 +17,7 @@ This custom image introduces the following enhancements:
 
 ## Documentation
 
-For more details and to know how to use the new the features included read the [wiki](https://github.com/sejerpz/alabs-mod-custom-images/wiki/Welcome)
+For more details and to know how to use the new the features included read the [wiki](https://github.com/sejerpz/alabs-mod-custom-images/wiki)
 
 # How to Install the MOD Dwarf aLabs image
 
