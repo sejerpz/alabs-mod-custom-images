@@ -10,6 +10,7 @@ This creates an opportunity to extend the system and address these gaps.
 
 This custom image introduces the following enhancements:
 
+- **Port grouping** added lv2 port grouping extension to mod-ui host
 - **New performance view**  
 - **Plugin labeling**  
 - **Extended control** over which parameters are included in snapshots  
