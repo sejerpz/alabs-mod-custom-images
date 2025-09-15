@@ -15,6 +15,10 @@ This custom image introduces the following enhancements:
 - **Extended control** over which parameters are included in snapshots  
 - **On-device editing** of pedalboard parameters directly from the Dwarf  
 
+## Documentation
+
+For more details and to know how to use the new the features included read the [wiki](https://github.com/sejerpz/alabs-mod-custom-images/wiki/Welcome)
+
 # How to Install the MOD Dwarf aLabs image
 
 To test this new image, follow the standard update procedure for the MOD Dwarf as described in the official documentation:
@@ -34,25 +38,3 @@ If you decide not to use this firmware image anymore:
 
 1. Repeat the update process.  
 2. This time, select and install an **official MOD image** from the official releases.
-
-# Features
-
-T.B.D.
-
-# How-to create a custom image
-
-## Setup mod plugin builder
-
-T.B.D
-
-## Compile a c library for mod
-
-T.B.D.
-
-## The create-image script
-
-T.B.D.
-
-# MOD Software stack
-
-T.B.D.
