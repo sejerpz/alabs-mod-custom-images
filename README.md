@@ -31,7 +31,7 @@ To test this new image, follow the standard update procedure for the MOD Dwarf a
 1. Read the **manual update procedure** on the documentation page.  
 2. Put your Dwarf into **update mode** as described.  
 3. Follow the instructions provided in the guide.  
-   - **Important:** Instead of downloading a standard image, download the latest **MOD Dwarf aLabs image** from this git repository (the .tar file).
+   - **Important:** Instead of downloading a standard image, download the latest **MOD Dwarf aLabs image** from the releases of this git repository [Alabs Releases](https://github.com/sejerpz/alabs-mod-custom-images/releases).
 
 ## Reverting to an Official Image
 
