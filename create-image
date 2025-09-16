@@ -2,28 +2,22 @@
 if [ -z "$1" ]
   then
 	echo "No tar base image supplied"
-	echo "\tusage: create-image <base-image-name.tar> <custom-version-name> <source base folder>"
+	echo "    usage: create-image <base-image-name.tar> <custom-version-name>"
 	exit 1
 fi
 if [ -z "$2" ]
   then
 	echo "No version name supplied"
-	echo "\tusage: create-image <base-image-name.tar> <custom-version-name> <source base folder>"
-	exit 1
-fi
-if [ -z "$3" ]
-  then
-	echo "No src base dir supplied"
-	echo "\tusage: create-image <base-image-name.tar> <custom-version-name> <source base folder>"
+	echo "    usage: create-image <base-image-name.tar> <custom-version-name>"
 	exit 1
 fi
 
+SRC_DIR=`pwd`
 TAR_BASE_IMAGE=$1
 VERSION=$2
 filename=$(basename -- "$TAR_BASE_IMAGE")
 TAR_NAME="${filename%.*}"
 IMAGE_NAME="$TAR_NAME-$VERSION"
-SRC_DIR=$3
 VER_IMAGE=${TAR_NAME#*-}
 VER_BASE=${VER_IMAGE%.*}
 VER_BASE_BUILD=${VER_IMAGE:${#VER_BASE}+1:10}
@@ -145,6 +139,7 @@ rm -rf $IMAGE_NAME/tmp
 
 echo 'Packing image file'
 tar cf $IMAGE_NAME.tar -C $IMAGE_NAME .
+sha1sum $IMAGE_NAME.tar > $IMAGE_NAME.tar.sha1
 
 echo 'Cleanup'
 rm -rf $IMAGE_NAME
