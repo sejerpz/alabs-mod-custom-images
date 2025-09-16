@@ -1,15 +1,13 @@
-import axios from 'axios';
-import { VueDraggable } from 'vue-draggable-plus';
+import axios from 'axios'
 
 function run() {
-    const { createApp, ref, onMounted } = Vue
-
+    const storageKeyPlugins = 'groupify.v1.plugins';
     const github_api = {
         get_plugins: "https://api.github.com/repos/mod-audio/mod-lv2-data/git/trees/master?recursive=1",
     }
-    const storageKeyPlugins = 'groupify.v1.plugins';
+    const { createApp, ref, onMounted } = Vue
 
-    createApp({
+    const app = createApp({
         setup() {
             let plugins = ref([])
             let selected_plugin = ref(null)
@@ -17,7 +15,8 @@ function run() {
             let err = ref(null)
             let ports = ref([])
             const groups = ref([])
-            
+            const el = ref<HTMLElement | null>(null)
+
             function get_plugin_list() {
                 plugins.value = []
                 axios.get(github_api.get_plugins)
@@ -130,39 +129,60 @@ function run() {
 
                                             // subject that are inputports and control ports
                                             const getInputPort = function(id, q) {
-                                                if (q._subject.id == id
-                                                    && q._predicate.id.endsWith('#type')
-                                                    && q._object.id.endsWith('#InputPort'))
+                                                if (q.subject.id == id
+                                                    && q.predicate.id.endsWith('#type')
+                                                    && q.object.id.endsWith('#InputPort'))
                                                     return q
                                                 else
                                                     return null
                                             } 
                                             const getControlPort = function(id, q) {
                                                 if (q._subject.id == id
-                                                    && q._predicate.id.endsWith('#type')
-                                                    && q._object.id.endsWith('#ControlPort'))
+                                                    && q.predicate.id.endsWith('#type')
+                                                    && q.object.id.endsWith('#ControlPort'))
                                                     return q
                                                 else
                                                     return null
                                             } 
                                             const searchPredicate = function(id, q, predicate) {
-                                                if (q._subject.id == id
-                                                    && q._predicate.id == predicate)
+                                                if (q.subject.id == id
+                                                    && q.predicate.id == predicate)
                                                     return q
                                                 else
                                                     return null
                                             } 
 
+                                            let _ports = []
                                             for(let id of subjects) {
                                                 if (quads.find(qd => getControlPort(id, qd)) && quads.find(qd => getInputPort(id, qd))) {
                                                     const label = quads.find(qd => searchPredicate(id, qd, "http://lv2plug.in/ns/lv2core#name"))
                                                     const symbol = quads.find(qd => searchPredicate(id, qd, "http://lv2plug.in/ns/lv2core#symbol"))
+                                                    const index =  quads.find(qd => searchPredicate(id, qd, "http://lv2plug.in/ns/lv2core#index"))
 
-                                                    const port = {id: id, label: label?._object?.id.replace('"', '').replace('"', ''), symbol: symbol?._object.id, group: -1, selected: false}
-                                                    ports.value.push(port)
+                                                    const port = { id: id,
+                                                                   label: label?.object?.id.replace('"', '').replace('"', ''),
+                                                                   symbol: symbol?.object.id,
+                                                                   index: parseInt(index.object.value) ?? 0,
+                                                                   group: -1,
+                                                                   selected: false
+                                                                 }
+                                                    _ports.push(port)
                                                     console.log('added ', port)
                                                 }
                                             }
+
+                                            // sort ports
+                                            _ports.sort((a, b) => {
+                                                if (a.index == b.index)
+                                                    return 0
+                                                else if (a.index < b.index)
+                                                    return -1
+                                                else
+                                                    return 1
+                                            });
+
+                                            // all done
+                                            ports.value = _ports;
                                         })
                                         .catch(err => {
                                             console.log(err)
@@ -200,6 +220,56 @@ function run() {
                 }
             }
 
+            function on_port_dropped(e) {
+                const p1 = ports.value[e.oldIndex]
+                const p2 = ports.value[e.newIndex]
+                const tmp = p1.index
+
+                console.log('port dropped ', e, ' ', p1.index, ' <> ', p2.index)
+                p1.index = p2.index
+                p2.index = tmp
+                console.log("new status ", ports.value)
+            }
+
+            function serialize()
+            {
+                try {
+                    const parser = new N3.Parser()
+                    const quads = []
+                    const prefixes = []
+                    const comments = []
+
+                    parser.parse(selected_ttl.value, 
+                        {
+                            // onQuad (required) accepts a listener of type (quad: RDF.Quad) => void
+                            onQuad: (err, quad) => { quads.push(quad); },
+                            // onPrefix (optional) accepts a listener of type (prefix: string, iri: NamedNode) => void
+                            onPrefix: (prefix, iri) => { prefixes.push(prefix); },
+                            // onComment (optional) accepts a listener of type (comment: string) => void
+                            onComment: (comment) => { comments.push(comment); },
+                        }
+                    )
+                    const writer = new N3.Writer({ format: 'N-Triples', prefixes: prefixes });
+
+                    prefixes.forEach(prefix => {
+                        writer.addPre
+                    })
+                    quads.forEach(element => {
+                        writer.addQuad(quads)
+                    });
+                    for(let port in ports.value) {
+                        writer.addQuad(new  N3.Quad(
+                            port.id,                                       // Subject
+                            new N3.NamedNode('http://example.org/cartoons#name'), // Predicate
+                            port.group                                     // Object
+                        ));
+                    }
+                    writer.end((error, result) => console.log(error, result));
+                } catch(err) {
+                    console.error('error serializing ', err)
+                }
+            }
+
             onMounted(() => {
                 console.log("onMounted: from composition")
                 let items = null
@@ -216,7 +286,9 @@ function run() {
                     console.log("plugins found in localstorage #", items.length)
                     plugins.value = items
                 }
+
             })
+
             // initalize groups
             groups.value.push({id: -1, label: 'none', color: "white"})
             for(let i=0; i<32; i++) {
@@ -229,14 +301,19 @@ function run() {
                 selected_ttl,
                 ports,
                 groups,
+                el,
                 toggle_port_selection,
                 set_selected_port_group,
                 get_plugin_list,
-                select_plugin
+                select_plugin,
+                on_port_dropped,
+                serialize
             }
         }
     })
-    .mount('#app')
+    
+    app.component("draggable", VueDraggableNext.VueDraggableNext)
+    app.mount('#app')
 }
 
 export default { run }

@@ -8,14 +8,18 @@
     <script type="importmap">
     {
         "imports": {
-            "axios": "https://cdn.skypack.dev/axios",
-            "vue-draggable-plus": "https://cdn.jsdelivr.net/npm/vue-draggable-plus@0.6.0/dist/vue-draggable-plus.iife.min.js"
+            "axios": "https://cdn.skypack.dev/axios"
         }
     }
     </script>
 
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <script src="https://unpkg.com/n3/browser/n3.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.10.2/Sortable.min.js"></script>
+    <!-- CDNJS :: Vue.Draggable (https://cdnjs.com/) -->
+    <script src="https://cdn.jsdelivr.net/npm/vue-draggable-next@2.3.0/dist/vue-draggable-next.global.min.js"></script>
+    
+    
     <script type="module" src="/tools/groupify.js"></script>
 
 
@@ -32,6 +36,7 @@
         <div class="header">
             <span v-if="selected_plugin" class="selected-plugin">{{selected_plugin.label}}</span>
             <button v-if="!plugins.value?.length" class="button-start" @click="get_plugin_list">Download plugin list</button>
+            <button v-if="selected_plugin" class="button-serialize" @click="serialize">All done, send</button>
         </div>
         <div class="plugin-list">
             <ul>
@@ -50,14 +55,14 @@
         <div class="plugin-info">
             <span v-if="!selected_plugin && plugins.value?.length > 0" class="empty-placeholder">Select a plugin from the left list</span>
             <div v-if="selected_plugin" class="plugin-info-ttl">{{ selected_ttl }}</div>
-            <div v-if="selected_plugin" class="plugin-info-preview">
+            <draggable v-if="selected_plugin" class="plugin-info-preview" @end="on_port_dropped" >
                 <div v-for="port in ports"
-                     class="port-control" :class="port.selected ? 'selected' : ''"
-                     @click="toggle_port_selection(port.id)">
+                    class="port-control" :class="port.selected ? 'selected' : ''"
+                    @click="toggle_port_selection(port.id)">
                         <span class="port-label">{{port.label}}</span>
                         <span class="port-group">{{port.group}}</span>
                 </div>
-            </div>
+            </draggable >
             <div v-if="selected_plugin" class="plugin-info-palette">
                 <div v-for="group in groups" class="group-button"
                      @click="set_selected_port_group(group.id)">
