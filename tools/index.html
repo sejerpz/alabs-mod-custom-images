@@ -8,7 +8,8 @@
     <script type="importmap">
     {
         "imports": {
-            "axios": "https://cdn.skypack.dev/axios"
+            "axios": "https://cdn.skypack.dev/axios",
+            "vue-draggable-plus": "https://cdn.jsdelivr.net/npm/vue-draggable-plus@0.6.0/dist/vue-draggable-plus.iife.min.js"
         }
     }
     </script>
@@ -29,8 +30,8 @@
 <body>
     <div id="app" class="app-container">
         <div class="header">
-            <button @click="get_plugin_list">list</button>
             <span v-if="selected_plugin" class="selected-plugin">{{selected_plugin.label}}</span>
+            <button v-if="!plugins.value?.length" class="button-start" @click="get_plugin_list">Download plugin list</button>
         </div>
         <div class="plugin-list">
             <ul>
@@ -43,10 +44,11 @@
                     {{ plugin.label }}
                 </li>
             </ul>
+            <span v-if="!plugins.value?.length" class="empty-placeholder">Nessun plugin disponibile</span>
         </div>
 
         <div class="plugin-info">
-            <span v-if="!selected_plugin">Select a plugin from the left list</span>
+            <span v-if="!selected_plugin && plugins.value?.length > 0" class="empty-placeholder">Select a plugin from the left list</span>
             <div v-if="selected_plugin" class="plugin-info-ttl">{{ selected_ttl }}</div>
             <div v-if="selected_plugin" class="plugin-info-preview">
                 <div v-for="port in ports"

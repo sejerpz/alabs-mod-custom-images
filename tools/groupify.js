@@ -1,11 +1,13 @@
 import axios from 'axios';
+import { VueDraggable } from 'vue-draggable-plus';
 
 function run() {
-    const { createApp, ref } = Vue
+    const { createApp, ref, onMounted } = Vue
 
     const github_api = {
         get_plugins: "https://api.github.com/repos/mod-audio/mod-lv2-data/git/trees/master?recursive=1",
     }
+    const storageKeyPlugins = 'groupify.v1.plugins';
 
     createApp({
         setup() {
@@ -40,6 +42,7 @@ function run() {
                         return a.label.localeCompare(b.label)
                     })
 
+                    localStorage.setItem(storageKeyPlugins, JSON.stringify(plugins.value))
                 })
                 .catch(err => {
                     console.error('error getting plugins: ', err)
@@ -197,6 +200,23 @@ function run() {
                 }
             }
 
+            onMounted(() => {
+                console.log("onMounted: from composition")
+                let items = null
+
+                try {
+                    items = JSON.parse(localStorage.getItem(storageKeyPlugins));
+                } catch(err) {
+                    console.error('error reading local storage: ', err)
+                    localStorage.setItem(storageKeyPlugins, null)
+                    items = null
+                }
+
+                if (items && items.length > 0) {
+                    console.log("plugins found in localstorage #", items.length)
+                    plugins.value = items
+                }
+            })
             // initalize groups
             groups.value.push({id: -1, label: 'none', color: "white"})
             for(let i=0; i<32; i++) {
@@ -214,9 +234,9 @@ function run() {
                 get_plugin_list,
                 select_plugin
             }
-        },
-
-    }).mount('#app')
+        }
+    })
+    .mount('#app')
 }
 
 export default { run }
