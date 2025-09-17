@@ -2,9 +2,10 @@
 <html lang="it">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <base href="/">
-    <link rel="stylesheet" href="/tools/groupify.css">
-
+    <link rel="stylesheet" href="/tools/groupify.css"> 
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css">
     <script type="importmap">
     {
         "imports": {
@@ -15,11 +16,16 @@
 
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <script src="https://unpkg.com/n3/browser/n3.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.10.2/Sortable.min.js"></script>
+    <!-- PrimeVUE -->
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <script src="https://unpkg.com/primevue/umd/primevue.min.js"></script>
+    <script src="https://unpkg.com/@primeuix/themes/umd/aura.js"></script>
+
+    <!-- <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.10.2/Sortable.min.js"></script> -->
     <!-- CDNJS :: Vue.Draggable (https://cdnjs.com/) -->
     <script src="https://cdn.jsdelivr.net/npm/vue-draggable-next@2.3.0/dist/vue-draggable-next.global.min.js"></script>
     <scrip src="https://cdn.jsdelivr.net/npm/jsdiff@1.1.1/index.min.js"></scrip>
-    
+
     
     <script type="module" src="/tools/groupify.js"></script>
 
@@ -33,50 +39,74 @@
     <title>Groupify</title>
 </head>
 <body>
-    <div id="app" class="app-container">
-        <div class="header">
-            <span v-if="selected_plugin" class="selected-plugin">{{selected_plugin.label}}</span>
-            <button v-if="!plugins.value?.length" class="button-start" @click="get_plugin_list">Download plugin list</button>
-            <button v-if="selected_plugin" class="button-serialize" @click="serialize">All done, send</button>
-        </div>
-        <div class="plugin-list">
-            <ul>
-                <li v-for="plugin in plugins" 
-                    :key="plugin.id"
-                    data-id="{{plugin.id}}"
-                    :class="plugin.selected ? 'selected' : ''"
-                    class="plugin-item"
-                    @click="select_plugin(plugin.id)">
-                    {{ plugin.label }}
-                </li>
-            </ul>
-            <span v-if="!plugins.value?.length" class="empty-placeholder">Nessun plugin disponibile</span>
-        </div>
+    <div id="app" class="h-full p-3 grid gap-3 grid-rows-[64px_1fr] grid-cols-1 grid-flow-row">
+        <p-toolbar>
+            <template #center>
+                <span v-if="selected_plugin" class="selected-plugin">{{selected_plugin.label}}</span>
+            </template>
+            <template #end>
+                <p-button v-if="!plugins.value?.length"
+                    icon="fa fa-cog fa-lg"
+                    label="Download plugin list"
+                    @click="get_plugin_list" />
+                    <p-button v-if="selected_plugin"
+                    class="button-serialize"
+                    label ="All done, send"
+                    @click="serialize"/>
+            </template>
+        </p-toolbar>
 
-        <div class="plugin-info">
-            <span v-if="!selected_plugin && plugins.value?.length > 0" class="empty-placeholder">Select a plugin from the left list</span>
-            <div class="plugin-ttl-preview">
-                <div v-if="select_plugin" class="plugin-ttl-toolbar">
-                    <button @click="switchPreview('original')">Original</button>
-                    <button @click="switchPreview('patched')">Patched</button>
-                    <button @click="switchPreview('diff')">Diff</button>
+        <p-splitter class="w-full">
+            <p-splitterpanel :size="20" class="flex items-center justify-center">
+                <p-listbox v-model="selected_plugin" class="w-full h-full" :options="plugins" :optionValue="id" :optionLabel="label" filter class="w-full md:w-56">
+                     <template #option="slotProps"> 
+                          <div>{{ slotProps.option['label'] }}</div>
+                     </template>
+                </p-listbox>
+            </p-splitterpanel>
+
+            <p-splitterpanel>
+                <div class="w-full h-full grid grid-cols-1 grid-rows-[1fr_200px] gap-2">
+                    <p-splitter>
+                        <p-splitterpanel :size="20">
+                            <div class="plugin-info">
+                                <!-- <span v-if="!selected_plugin && plugins.value?.length > 0" class="empty-placeholder">Select a plugin from the left list</span> -->
+                                <div class="grid grid-rows-[44px_1fr] gap-1">
+                                    <p-toolbar class="w-full">
+                                        <template #center>
+                                            <p-button label="Original" @click="switchPreview('original')" />
+                                            <p-button label="Patched" @click="switchPreview('patched')" />
+                                            <p-button label="Diff" @click="switchPreview('diff')" />
+                                        </template>
+                                    <p-toolbar>
+                                    <div v-if="selected_plugin" class="h-full plugin-ttl-text">{{ ttl_preview }}</div>
+                                </div>
+                            </div>
+                        </p-splitterpanel>
+
+                        <p-splitterpanel>
+                            <draggable v-if="selected_plugin" class="plugin-info-preview" @end="on_port_dropped" >
+                                <div v-for="port in ports"
+                                    class="port-control" :class="port.selected ? 'selected' : ''"
+                                    @click="toggle_port_selection(port.id)">
+                                        <span class="port-label">{{port.label}}</span>
+                                        <span class="port-group">{{port.group}}</span>
+                                </div>
+                            </draggable >
+                        </p-splitterpanel>
+
+                    </p-splitter>
+
+                    <!-- footer -->
+                    <div v-if="selected_plugin" class="plugin-info-palette">
+                        <div v-for="group in groups" class="group-button"
+                            @click="set_selected_port_group(group.id)">
+                            {{group.label}}
+                        </div>
+                    </div>
                 </div>
-                <div v-if="selected_plugin" class="plugin-ttl-text">{{ ttl_preview }}</div>
-            </div>
-            <draggable v-if="selected_plugin" class="plugin-info-preview" @end="on_port_dropped" >
-                <div v-for="port in ports"
-                    class="port-control" :class="port.selected ? 'selected' : ''"
-                    @click="toggle_port_selection(port.id)">
-                        <span class="port-label">{{port.label}}</span>
-                        <span class="port-group">{{port.group}}</span>
-                </div>
-            </draggable >
-            <div v-if="selected_plugin" class="plugin-info-palette">
-                <div v-for="group in groups" class="group-button"
-                     @click="set_selected_port_group(group.id)">
-                    {{group.label}}
-                </div>
-            </div>
-        </div>
+            </p-splitterpanel>
+
+        </p-splitter>
     </div>
 </body>

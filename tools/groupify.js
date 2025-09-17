@@ -5,7 +5,7 @@ function run() {
     const github_api = {
         get_plugins: "https://api.github.com/repos/mod-audio/mod-lv2-data/git/trees/master?recursive=1",
     }
-    const { createApp, ref, onMounted } = Vue
+    const { createApp, ref, onMounted, watch } = Vue
 
     const app = createApp({
         setup() {
@@ -34,7 +34,7 @@ function run() {
                                 parentItem.manifest = item;
                             } else if (item["mode"] == '040000' && path.indexOf('/modgui') == -1 ) { // folder
                                 var label = path.replace(/^.*[\\/]/, '')
-                                plugins.value.push({id: path, label: label, selected: false, data: item, manifest: null})
+                                plugins.value.push({id: path, label: label, data: item, manifest: null})
                             }
                         }
                     }
@@ -52,13 +52,6 @@ function run() {
 
             function select_plugin(id) {
                 console.log('plugin selected', id)
-                for(const plugin of plugins.value) {
-                    plugin.selected = (plugin.id == id)
-                    if (plugin.selected) {
-                        selected_plugin.value = plugin 
-                    }
-                }
-
                 if (selected_plugin.value) {
                     download_plugin_info(selected_plugin.value)
                 }
@@ -444,6 +437,10 @@ function run() {
 
             })
 
+            watch(select_plugin, (old, newValue) => {
+                console.log('selected plugin ', newValue)
+                select_plugin (newValue?.id)
+            })
             // initalize groups
             groups.value.push({id: -1, label: 'none', name: '<#none#>', color: "white"})
             for(let i=0; i<32; i++) {
@@ -468,6 +465,19 @@ function run() {
         }
     })
     
+
+    app.use(PrimeVue.Config, {
+        theme: {
+            preset: PrimeUIX.Themes.Aura
+        }
+    });
+
+    app.component('p-toolbar', PrimeVue.Toolbar);
+    app.component('p-button', PrimeVue.Button);
+    app.component('p-listbox', PrimeVue.Listbox);
+    app.component('p-splitter', PrimeVue.Splitter);
+    app.component('p-splitterpanel', PrimeVue.SplitterPanel);
+
     app.component("draggable", VueDraggableNext.VueDraggableNext)
     app.mount('#app')
 }
