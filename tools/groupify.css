@@ -76,11 +76,20 @@ body {
     gap: 8px;
 }
 
-.plugin-info-ttl {
-    height: 100%;
-    width: 400px;
+.plugin-ttl-preview {
     grid-row: 1;
     grid-column: 1;
+    overflow: auto;
+}
+
+.plugin-ttl-toolbar {
+    height: 24px;
+    width: 100%;
+}
+
+.plugin-ttl-text {
+    height: 100%;
+    width: 400px;
     white-space:pre-wrap;
     overflow: auto;
     font-family: monospace;
