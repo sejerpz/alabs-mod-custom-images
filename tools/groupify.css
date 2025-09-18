@@ -82,15 +82,11 @@ body {
     overflow: auto;
 }
 
-.plugin-ttl-toolbar {
-    height: 24px;
-    width: 100%;
-}
 
 .plugin-ttl-text {
     height: 100%;
     width: 400px;
-    white-space:pre-wrap;
+    white-space:pre;
     overflow: auto;
     font-family: monospace;
 }
@@ -106,27 +102,27 @@ body {
     gap: 2px;
     align-items: baseline;
     height: fit-content;
+    padding: 12px;
 }
 
 
 .port-control {
     width: 128px;
     height: 128px;
-    background-color: black;
+    background-color: rgb(59, 58, 58);
     color: whitesmoke;
     text-align: center;
     position: relative;
     border-radius: 4px;
+    border-top-style: solid;
+    border-top-width: 4px;
 }
 
 
 .port-control.selected {
     background-color: cornflowerblue;
     color: whitesmoke;
-    border-color: orange;
-    border-style: solid;
 }
-
 
 .port-label {
 }
@@ -147,12 +143,49 @@ body {
     flex-wrap: wrap;
     gap: 8px;
     overflow: auto;
+    align-content: center;
+    padding: 12px;
 }
 
-.group-button {
-    width: 48px;
-    height: 48px;
-    border: 1px;
-    border-style: solid;
-    text-align: center;
+/* 32 Groups */
+:root {
+    --no-group-color: #883996;;
+    --group-0-color: #DE7558;
+    --group-1-color: #16ACA6;
+    --group-2-color: #74A16B;
+    --group-3-color: #EC2469;
+    --group-4-color: #860FDA;
+    --group-5-color: #D4BA3D;
+    --group-6-color: #819393;
+    --group-7-color: #9951BF;
+    --group-8-color: #DFB6A5;
+    --group-9-color: #B9A843;
+    --group-10-color: #81DEA8;
+    --group-11-color: #AB386B;
+    --group-12-color: #4D80DD;
+    --group-13-color: #EBE65A;
+    --group-14-color: #0B575B;
+    --group-15-color: #5755F7;
+    --group-16-color: #3DC745;
+    --group-17-color: #F51034;
+    --group-18-color: #84D08B;
+    --group-19-color: #CAB8B0;
+    --group-20-color: #425265;
+    --group-21-color: #341B05;
+    --group-22-color: #055538;
+    --group-23-color: #1AE35C;
+    --group-24-color: #9D0B8E;
+    --group-25-color: #6F8C9A;
+    --group-26-color: #F91114;
+    --group-27-color: #069758;
+    --group-28-color: #2340B9;
+    --group-29-color: #3F7CBB;
+    --group-30-color: #8185D4;
+    --group-31-color: #080F1F;
+}
+
+/* Quirks PrimeVue */
+
+.h-full > .p-listbox-list-container {
+    max-height: calc(100% - 64px) !important;
 }

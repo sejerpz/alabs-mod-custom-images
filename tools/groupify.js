@@ -6,18 +6,25 @@ function run() {
         get_plugins: "https://api.github.com/repos/mod-audio/mod-lv2-data/git/trees/master?recursive=1",
     }
     const { createApp, ref, onMounted, watch } = Vue
-
     const app = createApp({
         setup() {
             let plugins = ref([])
             let selected_plugin = ref(null)
             let ttl_preview = ref('')
+            let selected_preview = ref('original')
             let original_ttl = ''
             let patched_ttl = ''
             let err = ref(null)
             let ports = ref([])
+            let renameDialogVisible = ref(false)
             const groups = ref([])
             const el = ref<HTMLElement | null>(null)
+            const toastService = PrimeVue.useToast()
+            const renameGroupDialog = defineModel({visible: false, group: null, name: ''})
+
+            function toast(message, title, timeoutMs) {
+                toastService.add({summary: title, detail: message, life: timeoutMs ?? 2000})
+            }
 
             function get_plugin_list() {
                 plugins.value = []
@@ -57,9 +64,22 @@ function run() {
                 }
             }
 
+            function show_rename_dialog (group) {
+                console.log('show rename dialog')
+                renameGroupDialog.label = group.label
+                renameGroupDialog.visible = renameDialogVisible = true
+            }
+
+            function rename_group(group, newName) {
+                group.label = newName
+                group.name = 'GROUP_' + newName.trim().replaceAll(' ', '_').replaceAll('-', '_')
+                renameGroupDialog.visible = renameDialogVisible = false
+            }
+
             function download_plugin_info(plugin) {
                 console.log('download plugin info: ', plugin.id)
 
+                toast('Get plugin manifest from github.com', 'Download in progress')
                 // download manifest.ttl
                 axios.get(plugin.manifest.url)
                 .then(res => {
@@ -158,7 +178,7 @@ function run() {
                                                                    label: label?.object?.id.replace('"', '').replace('"', ''),
                                                                    symbol: symbol?.object.id.replace('"', '').replace('"', ''),
                                                                    index: parseInt(index.object.value) ?? 0,
-                                                                   group: -1,
+                                                                   group: groups.value[0],
                                                                    selected: false
                                                                  }
                                                     _ports.push(port)
@@ -205,12 +225,16 @@ function run() {
                     port.selected = !port.selected
             }
 
-            function set_selected_port_group(group) {
-                console.log('set_selected_port_group ', group)
-                for(let port of ports.value) {
-                    if (port.selected) {
-                        port.group = group
-                        port.selected = false
+            function set_selected_port_group(groupId) {
+                console.log('set_selected_port_group ', groupId)
+                const group = groups.value.find(item => item.id == groupId)
+
+                if (group) {
+                    for(let port of ports.value) {
+                        if (port.selected) {
+                            port.group = group
+                            port.selected = false
+                        }
                     }
                 }
             }
@@ -226,7 +250,7 @@ function run() {
                 console.log("new status ", ports.value)
             }
 
-            function serialize()
+            function patch()
             {
                 // the patching is manual, can't reuse N3 too complex
                 const lines = original_ttl.split('\n')
@@ -265,7 +289,7 @@ function run() {
                     const symbolLineIndex = patchInfo.symbolLineIndex
                     const symbolPrefix = patchInfo.symbolPrefix
                     const indentation = patchInfo.symbolIndentation ?? '    '
-                    const group = groups.value.find(item => item.id == port.group)
+                    const group = port.group
 
                     // ok new port found, add the config to the previous
                     if (indexLineIndex >= 0) {
@@ -309,8 +333,8 @@ function run() {
                     groupLineIndex = -1
                     lastPrefixIndex = -1
 
-                    if (port.group >= 0 && !usedGroupsId.includes(port.group))
-                        usedGroupsId.push(port.group)
+                    if (port.group >= 0 && !usedGroupsId.includes(port.group.id))
+                        usedGroupsId.push(port.group.id)
 
                     for(let index = 0;index < lines.length; index++) {
                         const line = lines[index]
@@ -353,7 +377,7 @@ function run() {
                             else if (line.indexOf(':symbol') >= 0)
                             {
                                 // parse symbol name
-                                let lineSymbolName = line.trim().split(' ')[1]?.replace('"', '').replace('"', '')
+                                let lineSymbolName = line.trim().split(' ')[1]?.replaceAll('"', '').replace(',','').replaceAll(';', '')
                                 
                                 console.log('line symbol: ', lineSymbolName)
                                 if (lineSymbolName == port.symbol) {
@@ -404,18 +428,19 @@ function run() {
                 }
                 // join the lines
                 patched_ttl = lines.join('\n')
-                ttl_preview.value = patched_ttl
             }
 
             function switchPreview(preview) {
                 console.log('switch preview ', preview)
-                if (preview == 'patched')
+                if (preview == 'patched') {
                     ttl_preview.value = patched_ttl
-                else if (preview == 'diff') {
-                    ttl_preview.value = diff.createTwoFilesPatch("original", "new", original_ttl, patched_ttl)
-                }
-                else
+                } else if (preview == 'diff') {
+                    ttl_preview.value = Diff.createTwoFilesPatch("original", "new", original_ttl, patched_ttl)
+                } else {
                     ttl_preview.value = original_ttl
+                }
+
+                selected_preview.value = preview
             }
 
             onMounted(() => {
@@ -442,25 +467,30 @@ function run() {
                 select_plugin (newValue?.id)
             })
             // initalize groups
-            groups.value.push({id: -1, label: 'none', name: '<#none#>', color: "white"})
+            groups.value.push({id: -1, label: 'none', name: '<#none#>', color: "white", color: 'var(--no-group-color)'})
             for(let i=0; i<32; i++) {
-                groups.value.push({id: i, label: (i+1).toString(), name: 'GROUP_' + (i+1).toString(), color: "red"})
+                groups.value.push({id: i, label: (i+1).toString(), name: 'GROUP_' + (i+1).toString(), color: `var(--group-${i}-color)`})
             }
             return {
                 selected_plugin,
                 plugins,
                 err,
                 ttl_preview,
+                selected_preview,
                 ports,
                 groups,
                 el,
+                renameGroupDialog,
+                renameDialogVisible,
                 toggle_port_selection,
                 set_selected_port_group,
                 get_plugin_list,
                 select_plugin,
                 on_port_dropped,
-                serialize,
-                switchPreview
+                patch,
+                switchPreview,
+                show_rename_dialog,
+                rename_group
             }
         }
     })
@@ -469,16 +499,27 @@ function run() {
     app.use(PrimeVue.Config, {
         theme: {
             preset: PrimeUIX.Themes.Aura
-        }
+        },
+
     });
+
 
     app.component('p-toolbar', PrimeVue.Toolbar);
     app.component('p-button', PrimeVue.Button);
+    app.component('p-buttongroup', PrimeVue.ButtonGroup);
     app.component('p-listbox', PrimeVue.Listbox);
     app.component('p-splitter', PrimeVue.Splitter);
     app.component('p-splitterpanel', PrimeVue.SplitterPanel);
+    app.component('p-dialog', PrimeVue.Dialog);
+    app.component('p-inputtext', PrimeVue.InputText);
+    app.component('p-toast', PrimeVue.Toast);
 
     app.component("draggable", VueDraggableNext.VueDraggableNext)
+
+    
+    app.use(PrimeVue.ToastService);
+   
+
     app.mount('#app')
 }
 
