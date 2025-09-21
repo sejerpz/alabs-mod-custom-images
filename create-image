@@ -23,9 +23,10 @@ VER_BASE=${VER_IMAGE%.*}
 VER_BASE_BUILD=${VER_IMAGE:${#VER_BASE}+1:10}
 
 echo 'MOD IMAGE BUILDER'
-echo '    base image..: ' $IMAGE_NAME
-echo '    source dir..: ' $SRC_DIR
-echo '    custom build: ' $VERSION
+echo '    base image.......: ' $IMAGE_NAME
+echo '    base image vers..: ' $VER_IMAGE
+echo '    source dir.......: ' $SRC_DIR
+echo '    custom build.....: ' $VERSION
 echo ' '
 read -p 'Press ENTER key to start' PROCEED
 
@@ -52,6 +53,24 @@ if [ ! $? -eq 0 ]; then
 fi
 
 echo 'passed'
+
+echo 'Rebuilding controller firmware'
+
+cd $SRC_DIR/mod-dwarf-controller
+make moddwarf
+if [ ! $? -eq 0 ]; then
+	echo 'Fail to build controller firmware'
+	exit 1
+fi
+cd $SRC_DIR
+
+echo 'Building modtools library'
+bash build-modtools
+if [ ! $? -eq 0 ]; then
+	echo 'Fail to build modtools library'
+	exit 1
+fi
+
 
 echo 'Cleaning up'
 rm -rf $IMAGE_NAME
@@ -138,6 +157,7 @@ echo 'Cleanup image folder'
 rm -rf $IMAGE_NAME/tmp
 
 echo 'Packing image file'
+rm -f $IMAGE_NAME.tar
 tar cf $IMAGE_NAME.tar -C $IMAGE_NAME .
 sha1sum $IMAGE_NAME.tar > $IMAGE_NAME.tar.sha1
 
