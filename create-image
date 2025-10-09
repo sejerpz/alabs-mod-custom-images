@@ -84,30 +84,33 @@ tar -xf $TAR_BASE_IMAGE -C $IMAGE_NAME
 echo 'Extracting original system image: ' $TAR_BASE_IMAGE
 BASE_SYSTEM_DIR=$IMAGE_NAME/tmp/system
 mkdir -p $BASE_SYSTEM_DIR
-sudo tar -xf $IMAGE_NAME/system.tar.xz -C $BASE_SYSTEM_DIR
+sudo tar -xpf $IMAGE_NAME/system.tar.xz -C $BASE_SYSTEM_DIR
+
+# fix console device
+#sudo mknod $BASE_SYSTEM_DIR/./dev/console c 5 1
+#sudo chmod 622 $BASE_SYSTEM_DIR/./dev/console
+
 if [ -z $IMAGE_NAME ]; then
 	echo 'not doing chown IMAGE_NAME is empty'
-else
-	sudo chown -R $USER:$USER $IMAGE_NAME/
 fi
 rm -f $IMAGE_NAME/system.tar.xz 
 
 echo 'Removing original files'
-rm -rf $BASE_SYSTEM_DIR/usr/lib/python3.4/site-packages/modtools/*
-rm -rf $BASE_SYSTEM_DIR/usr/lib/python3.4/site-packages/mod/*
-rm -rf $BASE_SYSTEM_DIR/usr/share/mod/html/*
+sudo rm -rf $BASE_SYSTEM_DIR/usr/lib/python3.4/site-packages/modtools/*
+sudo rm -rf $BASE_SYSTEM_DIR/usr/lib/python3.4/site-packages/mod/*
+sudo rm -rf $BASE_SYSTEM_DIR/usr/share/mod/html/*
 
 echo 'Copying new files'
-cp -ar $SRC_DIR/mod-ui/utils/libmod_utils.so $BASE_SYSTEM_DIR/usr/lib/python3.4/site-packages/modtools/
-cp -ar $SRC_DIR/mod-ui/modtools/* $BASE_SYSTEM_DIR/usr/lib/python3.4/site-packages/modtools/
-cp -ar $SRC_DIR/mod-ui/mod/* $BASE_SYSTEM_DIR/usr/lib/python3.4/site-packages/mod/
-cp -ar $SRC_DIR/mod-ui/html/* $BASE_SYSTEM_DIR/usr/share/mod/html/
+sudo cp -ar $SRC_DIR/mod-ui/utils/libmod_utils.so $BASE_SYSTEM_DIR/usr/lib/python3.4/site-packages/modtools/
+sudo cp -ar $SRC_DIR/mod-ui/modtools/* $BASE_SYSTEM_DIR/usr/lib/python3.4/site-packages/modtools/
+sudo cp -ar $SRC_DIR/mod-ui/mod/* $BASE_SYSTEM_DIR/usr/lib/python3.4/site-packages/mod/
+sudo cp -ar $SRC_DIR/mod-ui/html/* $BASE_SYSTEM_DIR/usr/share/mod/html/
 
 # remove some unused dirs
-rm -rf $BASE_SYSTEM_DIR/usr/lib/python3.4/site-packages/mod/old
-rm -rf $BASE_SYSTEM_DIR/usr/lib/python3.4/site-packages/mod/knob-utils
-rm -rf $BASE_SYSTEM_DIR/usr/lib/python3.4/site-packages/mod/__pycache__/*
-rm -rf $BASE_SYSTEM_DIR/usr/lib/python3.4/site-packages/modtools/__pycache__/*
+sudo rm -rf $BASE_SYSTEM_DIR/usr/lib/python3.4/site-packages/mod/old
+sudo rm -rf $BASE_SYSTEM_DIR/usr/lib/python3.4/site-packages/mod/knob-utils
+sudo rm -rf $BASE_SYSTEM_DIR/usr/lib/python3.4/site-packages/mod/__pycache__/*
+sudo rm -rf $BASE_SYSTEM_DIR/usr/lib/python3.4/site-packages/modtools/__pycache__/*
 
 echo 'Update mod-os release'
 
@@ -122,16 +125,21 @@ fi
 echo 'Creating versions file'
 # controller firmware
 CONTROLLER_DATE=`date '+%Y %b %d %T'`
+sudo chmod o+w $BASE_SYSTEM_DIR/etc/mod-release/controller 
 cat > $BASE_SYSTEM_DIR/etc/mod-release/controller <<EOL
 generated=${CONTROLLER_DATE}
 revision=${CONTROLLER_GIT_HASH}
 EOL
+sudo chmod o-w $BASE_SYSTEM_DIR/etc/mod-release/controller 
 
 # os release
+sudo chmod o+w $BASE_SYSTEM_DIR/etc/mod-release/release
 cat > $BASE_SYSTEM_DIR/etc/mod-release/release<<EOL
 ${VER_IMAGE}-${VERSION}
 EOL
+sudo chmod o-w $BASE_SYSTEM_DIR/etc/mod-release/release
 
+sudo chmod o+w $IMAGE_NAME/VERSIONS
 cat > $IMAGE_NAME/VERSIONS  <<EOL
 version=${VER_BASE}
 build=${VER_BASE_BUILD}-${VERSION}
@@ -142,9 +150,10 @@ system=ad7d8147f481107c515c5d3e690ba673848f369b
 controller=${CONTROLLER_GIT_HASH}
 platform=moddwarf
 EOL
+sudo chmod o-w $IMAGE_NAME/VERSIONS
 
 echo 'Repacking system distribution' 
-tar cfJ $IMAGE_NAME/system.tar.xz -C $BASE_SYSTEM_DIR .
+sudo tar cpfJ $IMAGE_NAME/system.tar.xz -C $BASE_SYSTEM_DIR .
 
 echo 'Calculating checksum'
 rm -f $IMAGE_NAME/SHA1SUMS
@@ -154,7 +163,7 @@ sha1sum $IMAGE_NAME/system.tar.xz | sed "s/${IMAGE_NAME}\///" >> $IMAGE_NAME/SHA
 sha1sum $IMAGE_NAME/VERSIONS | sed "s/${IMAGE_NAME}\///" >> $IMAGE_NAME/SHA1SUMS
 
 echo 'Cleanup image folder'
-rm -rf $IMAGE_NAME/tmp
+sudo rm -rf $IMAGE_NAME/tmp
 
 echo 'Packing image file'
 rm -f $IMAGE_NAME.tar
@@ -162,7 +171,7 @@ tar cf $IMAGE_NAME.tar -C $IMAGE_NAME .
 sha1sum $IMAGE_NAME.tar > $IMAGE_NAME.tar.sha1
 
 echo 'Cleanup'
-rm -rf $IMAGE_NAME
+sudo rm -rf $IMAGE_NAME
 
 echo 'DONE!'
 
