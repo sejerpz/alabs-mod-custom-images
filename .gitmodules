@@ -1,7 +1,7 @@
 [submodule "mod-ui"]
 	path = mod-ui
 	url = git@github.com:sejerpz/mod-ui.git
-	branch = devel
+	branch = starless
 [submodule "mod-dwarf-controller"]
 	path = mod-dwarf-controller
 	url = git@github.com:sejerpz/mod-dwarf-controller
