@@ -52,6 +52,8 @@ if [ ! $? -eq 0 ]; then
 	exit 1
 fi
 
+STARLESS_GIT_HASH=`git -C $SRC_DIR rev-parse HEAD`
+
 echo 'passed'
 
 echo 'Rebuilding controller firmware'
@@ -124,10 +126,10 @@ fi
 
 echo 'Creating versions file'
 # controller firmware
-CONTROLLER_DATE=`date '+%Y %b %d %T'`
+CONTROLLER_DATE=`date '+%Y %b %d %H:%M:%S'`
 sudo chmod o+w $BASE_SYSTEM_DIR/etc/mod-release/controller 
 cat > $BASE_SYSTEM_DIR/etc/mod-release/controller <<EOL
-generated=${CONTROLLER_DATE}
+generated=${CONTROLLER_DATE} at ${HOSTNAME}
 revision=${CONTROLLER_GIT_HASH}
 EOL
 sudo chmod o-w $BASE_SYSTEM_DIR/etc/mod-release/controller 
@@ -139,6 +141,15 @@ ${VER_IMAGE}-${VERSION}
 EOL
 sudo chmod o-w $BASE_SYSTEM_DIR/etc/mod-release/release
 
+# os system
+SYSTEM_DATE=`date '+%Y %b %d %H:%M:%S'`
+sudo chmod o+w $BASE_SYSTEM_DIR/etc/mod-release/system
+cat > $BASE_SYSTEM_DIR/etc/mod-release/system<<EOL
+generated=${SYSTEM_DATE} at ${HOSTNAME}
+revision=${STARLESS_GIT_HASH}
+EOL
+sudo chmod o-w $BASE_SYSTEM_DIR/etc/mod-release/system
+
 sudo chmod o+w $IMAGE_NAME/VERSIONS
 cat > $IMAGE_NAME/VERSIONS  <<EOL
 version=${VER_BASE}
@@ -146,7 +157,7 @@ build=${VER_BASE_BUILD}-${VERSION}
 version.build=${VER_IMAGE}-${VERSION}
 label=
 restore=48de0f238fdb1ff138a734a1272c
-system=ad7d8147f481107c515c5d3e690ba673848f369b
+system=${STARLESS_GIT_HASH}
 controller=${CONTROLLER_GIT_HASH}
 platform=moddwarf
 EOL
