@@ -14,7 +14,9 @@ This custom image introduces the following enhancements:
 - **New performance view**  
 - **Plugin labeling**  
 - **Extended control** over which parameters are included in snapshots  
-- **On-device editing** of pedalboard parameters directly from the Dwarf  
+- **On-device editing** of pedalboard parameters directly from the Dwarf
+
+  and many other, read the wiki for the complete list
 
 ## Documentation
 
