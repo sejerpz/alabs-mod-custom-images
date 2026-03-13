@@ -59,6 +59,7 @@ echo 'passed'
 echo 'Rebuilding controller firmware'
 
 cd $SRC_DIR/mod-dwarf-controller
+make clean
 make moddwarf
 if [ ! $? -eq 0 ]; then
 	echo 'Fail to build controller firmware'
@@ -119,6 +120,16 @@ echo 'Update mod-os release'
 
 echo 'Adding firmware'
 cp -ar $SRC_DIR/mod-dwarf-controller/out/mod-dwarf-controller.bin $IMAGE_NAME/
+
+# copy firmware and debug symbols in the new image
+sudo chmod o+w $BASE_SYSTEM_DIR/usr/share/mod/controller
+sudo chmod o+w $BASE_SYSTEM_DIR/usr/share/mod/controller/mod-dwarf-controller.bin
+sudo chmod o+w $BASE_SYSTEM_DIR/usr/share/mod/controller/version
+cp $SRC_DIR/mod-dwarf-controller/out/mod-dwarf-controller.bin $BASE_SYSTEM_DIR/usr/share/mod/controller/mod-dwarf-controller.bin
+cp $SRC_DIR/mod-dwarf-controller/out/mod-dwarf-controller.dbg $BASE_SYSTEM_DIR/usr/share/mod/controller/mod-dwarf-controller.dbg
+cat > $BASE_SYSTEM_DIR/usr/share/mod/controller/version <<EOL
+${CONTROLLER_GIT_HASH}
+EOL
 if [ ! $? -eq 0 ]; then
 	echo 'Cannot copy mod warf controller firmware'
 	exit 1
