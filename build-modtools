@@ -1,4 +1,5 @@
 #!/bin/sh
 export WORKDIR=/home/andrea/Alab/Devel/mod/
 source ../mod-plugin-builder/local.env moddwarf-new
+make -C mod-ui/utils clean
 make -C mod-ui/utils
