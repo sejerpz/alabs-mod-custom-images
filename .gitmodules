@@ -6,3 +6,7 @@
 	path = mod-dwarf-controller
 	url = git@github.com:sejerpz/mod-dwarf-controller
 	branch = features/builder
+[submodule "mod-host"]
+	path = mod-host
+	url = git@github.com:sejerpz/mod-host.git
+	branch = starless
