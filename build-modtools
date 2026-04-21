@@ -1,5 +1,5 @@
 #!/bin/sh
-export WORKDIR=/home/andrea/Alab/Devel/mod/
+export WORKDIR=/home/andrea/Alabs/Devel/mod/
 source ../mod-plugin-builder/local.env moddwarf-new
 echo "Building modtools library" 
 make -C mod-ui/utils clean
