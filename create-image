@@ -1,26 +1,62 @@
 #!/bin/bash
-if [ -z "$1" ]
+if [ "$1" != "update" ] && [ "$1" != "build" ] && [ "$1" != "tag" ]
   then
-	echo "No tar base image supplied"
-	echo "    usage: create-image <base-image-name.tar> <custom-version-name>"
+	echo "Invalid command supplied"
+	echo "    available commands: update | build | tag"
 	exit 1
 fi
-if [ -z "$2" ]
+
+if [ "$1" = "build" ] && [ -z "$2" ]
+  then
+	echo "No tar base image supplied"
+	echo "    usage: create-image build <base-image-name.tar> <custom-version-name>"
+	echo "    example: create-image build moddwarf-1.0.0.tar alabs42"
+	exit 1
+fi
+if [ "$1" = "build" ] && [ -z "$3" ]
   then
 	echo "No version name supplied"
-	echo "    usage: create-image <base-image-name.tar> <custom-version-name>"
+	echo "    usage: create-image build <base-image-name.tar> <custom-version-name>"
+	echo "    example: create-image build moddwarf-1.0.0.tar alabs42"
+	exit 1
+fi
+
+if [ "$1" = "tag" ] && [ -z "$2" ]
+  then
+	echo "No tar base image supplied"
+	echo "    usage: create-image tag <custom-version-name>"
+	echo "    example: create-image tag alabs42"
 	exit 1
 fi
 
 SRC_DIR=`pwd`
-TAR_BASE_IMAGE=$1
-VERSION=$2
+COMMAND=$1
+TAR_BASE_IMAGE=$2
+TAG_NAME=$2
+TAG_VERSION=${TAG_NAME#alabs}
+VERSION=$3
 filename=$(basename -- "$TAR_BASE_IMAGE")
 TAR_NAME="${filename%.*}"
 IMAGE_NAME="$TAR_NAME-$VERSION"
 VER_IMAGE=${TAR_NAME#*-}
 VER_BASE=${VER_IMAGE%.*}
 VER_BASE_BUILD=${VER_IMAGE:${#VER_BASE}+1:10}
+
+if [ "$1" = "update" ]
+  then
+	echo "UPDATE GIT SUBMODULES"
+	git submodule update --init --recursive
+	exit $?
+fi
+
+if [ "$1" = "tag" ]
+  then
+	echo "TAGGING GIT REPOSITORIES"
+	echo git -C $SRC_DIR/mod-dwarf-controller tag -a $TAG_NAME -m "aLabs release $TAG_VERSION"
+	echo git -C $SRC_DIR/mod-ui tag -a $TAG_NAME -m "aLabs release $TAG_VERSION"
+	echo git -C $SRC_DIR/mod-hosts tag -a $TAG_NAME -m "aLabs release $TAG_VERSION"
+	exit $?
+fi
 
 echo 'MOD IMAGE BUILDER'
 echo '    base image.......: ' $IMAGE_NAME
