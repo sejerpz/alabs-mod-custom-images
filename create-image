@@ -45,16 +45,16 @@ VER_BASE_BUILD=${VER_IMAGE:${#VER_BASE}+1:10}
 if [ "$1" = "update" ]
   then
 	echo "UPDATE GIT SUBMODULES"
-	git submodule update --init --recursive
+	git submodule update --init --remote --recursive
 	exit $?
 fi
 
 if [ "$1" = "tag" ]
   then
 	echo "TAGGING GIT REPOSITORIES"
-	echo git -C $SRC_DIR/mod-dwarf-controller tag -a $TAG_NAME -m "aLabs release $TAG_VERSION"
-	echo git -C $SRC_DIR/mod-ui tag -a $TAG_NAME -m "aLabs release $TAG_VERSION"
-	echo git -C $SRC_DIR/mod-hosts tag -a $TAG_NAME -m "aLabs release $TAG_VERSION"
+	git -C $SRC_DIR/mod-dwarf-controller tag -a $TAG_NAME -m "aLabs release $TAG_VERSION"
+	git -C $SRC_DIR/mod-ui tag -a $TAG_NAME -m "aLabs release $TAG_VERSION"
+	git -C $SRC_DIR/mod-host tag -a $TAG_NAME -m "aLabs release $TAG_VERSION"
 	exit $?
 fi
 
