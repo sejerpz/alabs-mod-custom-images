@@ -46,6 +46,9 @@ if [ "$1" = "update" ]
   then
 	echo "UPDATE GIT SUBMODULES"
 	git submodule update --init --remote --recursive
+	git add $SRC_DIR/mod-dwarf-controller
+	git add $SRC_DIR/mod-ui
+	git add $SRC_DIR/mod-host
 	exit $?
 fi
 
@@ -55,6 +58,7 @@ if [ "$1" = "tag" ]
 	git -C $SRC_DIR/mod-dwarf-controller tag -a $TAG_NAME -m "aLabs release $TAG_VERSION"
 	git -C $SRC_DIR/mod-ui tag -a $TAG_NAME -m "aLabs release $TAG_VERSION"
 	git -C $SRC_DIR/mod-host tag -a $TAG_NAME -m "aLabs release $TAG_VERSION"
+	git tag -a $TAG_NAME -m "aLabs release $TAG_VERSION"
 	exit $?
 fi
 
