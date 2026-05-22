@@ -7,4 +7,3 @@ make -C mod-ui/utils
 echo "Building mod-host"
 make -C mod-host clean
 make -C mod-host
-#make -C mod-host PREFIX=/usr DESTDIR=$(pwd)/mod-host/install install
