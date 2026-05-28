@@ -1,19 +1,19 @@
 #!/bin/bash
-if [ "$1" != "update" ] && [ "$1" != "build" ] && [ "$1" != "tag" ]
+if [ "$1" != "update" ] && [ "$1" != "build" ] && [ "$1" != "tag" ] && [ "$1" != "release" ]
   then
 	echo "Invalid command supplied"
 	echo "    available commands: update | build | tag"
 	exit 1
 fi
 
-if [ "$1" = "build" ] && [ -z "$2" ]
+if [[ "$1" == "build" || "$1" == "release" ]] && [ -z "$2" ]
   then
 	echo "No tar base image supplied"
 	echo "    usage: create-image build <base-image-name.tar> <custom-version-name>"
 	echo "    example: create-image build moddwarf-1.0.0.tar alabs42"
 	exit 1
 fi
-if [ "$1" = "build" ] && [ -z "$3" ]
+if [[ "$1" == "build" || "$1" == "release" ]] && [ -z "$3" ]
   then
 	echo "No version name supplied"
 	echo "    usage: create-image build <base-image-name.tar> <custom-version-name>"
@@ -42,14 +42,18 @@ VER_IMAGE=${TAR_NAME#*-}
 VER_BASE=${VER_IMAGE%.*}
 VER_BASE_BUILD=${VER_IMAGE:${#VER_BASE}+1:10}
 
-if [ "$1" = "update" ]
+if [[ "$1" == "update" || "$1" == "release" ]]
   then
 	echo "UPDATE GIT SUBMODULES"
 	git submodule update --init --remote --recursive
 	git add $SRC_DIR/mod-dwarf-controller
 	git add $SRC_DIR/mod-ui
 	git add $SRC_DIR/mod-host
-	exit $?
+
+	# exit if command is update, otherwise continue to build the image
+	if [ "$1" = "update" ]; then
+		exit $?
+	fi
 fi
 
 if [ "$1" = "tag" ]
