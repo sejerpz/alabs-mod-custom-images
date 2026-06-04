@@ -1,8 +1,8 @@
 #!/bin/bash
-if [ "$1" != "update" ] && [ "$1" != "build" ] && [ "$1" != "tag" ] && [ "$1" != "release" ]
+if [ "$1" != "update" ] && [ "$1" != "build" ] && [ "$1" != "build-deps" ] && [ "$1" != "tag" ] && [ "$1" != "release" ]
   then
 	echo "Invalid command supplied"
-	echo "    available commands: update | build | tag"
+	echo "    available commands: update | build | build-deps | tag"
 	exit 1
 fi
 
@@ -64,6 +64,23 @@ if [ "$1" = "tag" ]
 	git -C $SRC_DIR/mod-host tag -a $TAG_NAME -m "aLabs release $TAG_VERSION"
 	git tag -a $TAG_NAME -m "aLabs release $TAG_VERSION"
 	exit $?
+fi
+
+if [ "$1" = "build-deps" ]
+  then
+	echo 'Cloning dependencies'
+	if [ ! -d $SRC_DIR/deps/cc-master ]; then
+		git clone --depth 1 --branch master https://github.com/mod-audio/cc-master.git $SRC_DIR/deps/cc-master
+	fi
+
+	echo 'Building dependencies'
+	bash build-modtools build-deps
+	if [ ! $? -eq 0 ]; then
+		echo 'Fail to build dependencies'
+		exit 1
+	fi
+	echo 'Dependencies built successfully. Use create-image with build or release to build the image'
+	exit 0
 fi
 
 echo 'MOD IMAGE BUILDER'

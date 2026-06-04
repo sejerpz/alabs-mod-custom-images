@@ -1,9 +1,52 @@
 #!/bin/sh
-export WORKDIR=/home/andrea/Alabs/Devel/mod/
+SRC_ROOT=$(pwd)
+export WORKDIR=/home/andrea/Alab/Devel/mod/
+
+# setup the environment for the build
 source ../mod-plugin-builder/local.env moddwarf-new
+
+# build dependencies
+if [[ "$1" == "build-deps" ]]
+  then
+
+    # build the cc-master library
+    echo "Building cc-master library"
+    cd $SRC_ROOT/deps/cc-master
+    if pkg-config cc_client; then
+        echo "uninstalling cc-master"
+        ./waf uninstall || echo "Failed to uninstall cc-master, continuing with build";
+    fi
+    ./waf configure --prefix=$WORKDIR/moddwarf-new/host/usr/aarch64-buildroot-linux-gnu/sysroot/usr || { echo "Failed to configure cc-master"; exit 1; }
+    ./waf build || { echo "Failed to build cc-master"; exit 1; }
+    ./waf install || { echo "Failed to install cc-master"; exit 1; }
+    cd $SRC_ROOT
+
+    exit 0
+fi
+
+# check if the dependencies are installed
+echo -n
+if pkg-config --exists cc_client; then
+    echo "cc_client...: found"
+else
+    echo "cc_client...: not found (use build-deps parameter to rebuild and install cc-master)"
+    exit 1
+fi
+if pkg-config --exists hylia; then
+    echo "hylia.......: found"
+else
+    echo "hylia.......: not found"
+    exit 1
+fi
+
+echo -n
+# build the modtools library
 echo "Building modtools library" 
 make -C mod-ui/utils clean
 make -C mod-ui/utils
+
+# build mod-host
 echo "Building mod-host"
+# build mod-host
 make -C mod-host clean
 make -C mod-host
