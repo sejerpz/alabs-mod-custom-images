@@ -6,18 +6,32 @@ if [ "$1" != "update" ] && [ "$1" != "build" ] && [ "$1" != "build-deps" ] && [ 
 	exit 1
 fi
 
+if [ "$2" != "moddwarf-new" ] && [ "$2" != "modduox-new" ]
+  then
+	echo "Invalid platform supplied"
+	echo "    available platforms: moddwarf-new | modduox-new"
+	exit 1
+fi
+
 if [[ "$1" == "build" || "$1" == "release" ]] && [ -z "$2" ]
   then
-	echo "No tar base image supplied"
-	echo "    usage: create-image build <base-image-name.tar> <custom-version-name>"
-	echo "    example: create-image build moddwarf-1.0.0.tar alabs42"
+	echo "No platform supplied"
+	echo "    usage: create-image build <platform> <base-image-name.tar> <custom-version-name>"
+	echo "    example: create-image build moddwarf-new moddwarf-1.0.0.tar alabs42"
 	exit 1
 fi
 if [[ "$1" == "build" || "$1" == "release" ]] && [ -z "$3" ]
   then
+	echo "No tar base image supplied"
+	echo "    usage: create-image build <platform> <base-image-name.tar> <custom-version-name>"
+	echo "    example: create-image build moddwarf-new moddwarf-1.0.0.tar alabs42"
+	exit 1
+fi
+if [[ "$1" == "build" || "$1" == "release" ]] && [ -z "$4" ]
+  then
 	echo "No version name supplied"
-	echo "    usage: create-image build <base-image-name.tar> <custom-version-name>"
-	echo "    example: create-image build moddwarf-1.0.0.tar alabs42"
+	echo "    usage: create-image build <platform> <base-image-name.tar> <custom-version-name>"
+	echo "    example: create-image build moddwarf-new moddwarf-1.0.0.tar alabs42"
 	exit 1
 fi
 
@@ -29,12 +43,14 @@ if [ "$1" = "tag" ] && [ -z "$2" ]
 	exit 1
 fi
 
+
 SRC_DIR=`pwd`
 COMMAND=$1
-TAR_BASE_IMAGE=$2
-TAG_NAME=$2
+PLATFORM=$2
+TAR_BASE_IMAGE=$3
+TAG_NAME=$3
 TAG_VERSION=${TAG_NAME#alabs}
-VERSION=$3
+VERSION=$4
 filename=$(basename -- "$TAR_BASE_IMAGE")
 TAR_NAME="${filename%.*}"
 IMAGE_NAME="$TAR_NAME-$VERSION"
@@ -84,10 +100,12 @@ if [ "$1" = "build-deps" ]
 fi
 
 echo 'MOD IMAGE BUILDER'
+echo '    platform.........: ' $PLATFORM
 echo '    base image.......: ' $IMAGE_NAME
 echo '    base image vers..: ' $VER_IMAGE
 echo '    source dir.......: ' $SRC_DIR
 echo '    custom build.....: ' $VERSION
+echo '    custom firmware..: ' $FIRMWARE_DIR
 echo ' '
 read -p 'Press ENTER key to start' PROCEED
 
@@ -101,35 +119,39 @@ if [ ! -d $SRC_DIR/mod-ui ]; then
 	echo '    [ERR] MOD-UI sources not found in ' $SRC_DIR'/mod-ui'
 	exit 1
 fi
-# check mod dwarf controller
-if [ ! -d $SRC_DIR/mod-dwarf-controller ]; then
-	echo '    [ERR] MOD-DWARF-CONTROLLER sources not found in ' $SRC_DIR'/mod-dwarf-controller'
-	exit 1
+
+if [ $PLATFORM = "moddwarf-new" ]; then
+	echo '    Building custom HMI firmware from ' $FIRMWARE_DIR
+
+	FIRMWARE_DIR=$SRC_DIR/mod-dwarf-controller
+	CONTROLLER_GIT_HASH=`git -C $FIRMWARE_DIR rev-parse HEAD`
+	CONTROLLER_GIT_DATE=`git -C $FIRMWARE_DIR show --no-patch --format=%cd HEAD`
+	if [ ! $? -eq 0 ]; then
+		exit 1
+	fi
+
+	echo 'Rebuilding controller firmware'
+
+	cd $FIRMWARE_DIR
+	make clean
+	make moddwarf
+	if [ ! $? -eq 0 ]; then
+		echo 'Fail to build controller firmware'
+		exit 1
+	fi
+
+else
+	echo '    Custom HMI firmware sources not supported for this platform, using prebuilt firmware'
 fi
 
-CONTROLLER_GIT_HASH=`git -C $SRC_DIR/mod-dwarf-controller rev-parse HEAD`
-CONTROLLER_GIT_DATE=`git -C $SRC_DIR/mod-dwarf-controller show --no-patch --format=%cd HEAD`
-if [ ! $? -eq 0 ]; then
-	exit 1
-fi
 
 STARLESS_GIT_HASH=`git -C $SRC_DIR rev-parse HEAD`
 
 echo 'passed'
-
-echo 'Rebuilding controller firmware'
-
-cd $SRC_DIR/mod-dwarf-controller
-make clean
-make moddwarf
-if [ ! $? -eq 0 ]; then
-	echo 'Fail to build controller firmware'
-	exit 1
-fi
 cd $SRC_DIR
 
-echo 'Building modtools library'
-bash build-modtools
+echo 'Building mod binaries using docker build enviroment'
+bash docker-build $PLATFORM
 if [ ! $? -eq 0 ]; then
 	echo 'Fail to build modtools library'
 	exit 1
@@ -185,32 +207,36 @@ sudo cp -ar $SRC_DIR/mod-host/mod-monitor.so $BASE_SYSTEM_DIR/usr/lib/jack/
 
 echo 'Update mod-os release'
 
-echo 'Adding firmware'
-cp -ar $SRC_DIR/mod-dwarf-controller/out/mod-dwarf-controller.bin $IMAGE_NAME/
+if [ $PLATFORM = "moddwarf-new" ]; then
+	echo 'Adding firmware'
+	cp -ar $FIRMWARE_DIR/out/mod-dwarf-controller.bin $IMAGE_NAME/
 
-# copy firmware and debug symbols in the new image
-sudo chmod o+w $BASE_SYSTEM_DIR/usr/share/mod/controller
-sudo chmod o+w $BASE_SYSTEM_DIR/usr/share/mod/controller/mod-dwarf-controller.bin
-sudo chmod o+w $BASE_SYSTEM_DIR/usr/share/mod/controller/version
-cp $SRC_DIR/mod-dwarf-controller/out/mod-dwarf-controller.bin $BASE_SYSTEM_DIR/usr/share/mod/controller/mod-dwarf-controller.bin
-cp $SRC_DIR/mod-dwarf-controller/out/mod-dwarf-controller.dbg $BASE_SYSTEM_DIR/usr/share/mod/controller/mod-dwarf-controller.dbg
-cat > $BASE_SYSTEM_DIR/usr/share/mod/controller/version <<EOL
+	# copy firmware and debug symbols in the new image
+	sudo chmod o+w $BASE_SYSTEM_DIR/usr/share/mod/controller
+	sudo chmod o+w $BASE_SYSTEM_DIR/usr/share/mod/controller/mod-dwarf-controller.bin
+	sudo chmod o+w $BASE_SYSTEM_DIR/usr/share/mod/controller/version
+	cp $FIRMWARE_DIR/out/mod-dwarf-controller.bin $BASE_SYSTEM_DIR/usr/share/mod/controller/mod-dwarf-controller.bin
+	cp $FIRMWARE_DIR/out/mod-dwarf-controller.dbg $BASE_SYSTEM_DIR/usr/share/mod/controller/mod-dwarf-controller.dbg
+	cat > $BASE_SYSTEM_DIR/usr/share/mod/controller/version <<EOL
 ${CONTROLLER_GIT_HASH}
 EOL
-if [ ! $? -eq 0 ]; then
-	echo 'Cannot copy mod warf controller firmware'
-	exit 1
-fi
 
-echo 'Creating versions file'
-# controller firmware
-CONTROLLER_DATE=`date '+%Y %b %d %H:%M:%S'`
-sudo chmod o+w $BASE_SYSTEM_DIR/etc/mod-release/controller 
-cat > $BASE_SYSTEM_DIR/etc/mod-release/controller <<EOL
+	if [ ! $? -eq 0 ]; then
+		echo 'Cannot copy mod warf controller firmware'
+		exit 1
+	fi
+
+	echo 'Creating versions file'
+	# controller firmware
+	CONTROLLER_DATE=`date '+%Y %b %d %H:%M:%S'`
+	sudo chmod o+w $BASE_SYSTEM_DIR/etc/mod-release/controller 
+	cat > $BASE_SYSTEM_DIR/etc/mod-release/controller <<EOL
 generated=${CONTROLLER_DATE} at ${HOSTNAME}
 revision=${CONTROLLER_GIT_HASH}
 EOL
-sudo chmod o-w $BASE_SYSTEM_DIR/etc/mod-release/controller 
+
+	sudo chmod o-w $BASE_SYSTEM_DIR/etc/mod-release/controller 
+fi
 
 # os release
 sudo chmod o+w $BASE_SYSTEM_DIR/etc/mod-release/release
@@ -246,7 +272,13 @@ sudo tar cpfJ $IMAGE_NAME/system.tar.xz -C $BASE_SYSTEM_DIR .
 
 echo 'Calculating checksum'
 rm -f $IMAGE_NAME/SHA1SUMS
-sha1sum $IMAGE_NAME/mod-dwarf-controller.bin | sed "s/$IMAGE_NAME\///" >> $IMAGE_NAME/SHA1SUMS
+if [ $PLATFORM = "moddwarf-new" ]; then
+	sha1sum $IMAGE_NAME/mod-dwarf-controller.bin | sed "s/$IMAGE_NAME\///" >> $IMAGE_NAME/SHA1SUMS
+else
+	# standard duox firmaware
+	sha1sum $IMAGE_NAME/mod-duox-controller.bin | sed "s/$IMAGE_NAME\///" >> $IMAGE_NAME/SHA1SUMS
+	sha1sum $IMAGE_NAME/mod-duox-le-controller.bin | sed "s/$IMAGE_NAME\///" >> $IMAGE_NAME/SHA1SUMS
+fi
 sha1sum $IMAGE_NAME/restore.tar.xz | sed "s/${IMAGE_NAME}\///" >> $IMAGE_NAME/SHA1SUMS
 sha1sum $IMAGE_NAME/system.tar.xz | sed "s/${IMAGE_NAME}\///" >> $IMAGE_NAME/SHA1SUMS
 sha1sum $IMAGE_NAME/VERSIONS | sed "s/${IMAGE_NAME}\///" >> $IMAGE_NAME/SHA1SUMS
