@@ -35,6 +35,12 @@ else
     echo "hylia.......: not found"
     exit 1
 fi
+if pkg-config --atleast-version=3.3.5 fftw3 fftw3f; then
+    echo "fftw3.......: found"
+else
+    echo "fftw3.......: not found"
+    exit 1
+fi
 
 echo -n
 # build the modtools library
