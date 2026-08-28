@@ -1,7 +1,9 @@
 #!/bin/bash
-SRC_ROOT=/root/source
 PLATFORM=$1
-#export WORKDIR=/home/andrea/Alab/Devel/mod/
+
+# source global configs
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/config.sh"
 
 # check if the docker container is running
 source local.env $PLATFORM
@@ -10,7 +12,7 @@ source local.env $PLATFORM
 if ! pkg-config --exists cc_client; then
     # build the cc-master library
     echo "Building cc-master library since it is not found in the system"
-    cd $SRC_ROOT/deps/cc-master
+    cd $DOCKER_SRC_ROOT/deps/cc-master
     if pkg-config cc_client; then
         echo "uninstalling cc-master"
         ./waf uninstall || echo "Failed to uninstall cc-master, continuing with build";
@@ -18,7 +20,7 @@ if ! pkg-config --exists cc_client; then
     ./waf configure --prefix=$WORKDIR/$PLATFORM/host/usr/aarch64-buildroot-linux-gnu/sysroot/usr || { echo "Failed to configure cc-master"; exit 1; }
     ./waf build || { echo "Failed to build cc-master"; exit 1; }
     ./waf install || { echo "Failed to install cc-master"; exit 1; }
-    cd $SRC_ROOT
+    cd $DOCKER_SRC_ROOT
 fi
 
 # check if the dependencies are installed
@@ -35,6 +37,13 @@ else
     echo "hylia.......: not found"
     exit 1
 fi
+if pkg-config --exists fftw3 fftw3f; then
+    echo "fftw3.......: found"
+else
+    echo "fftw3.......: not found"
+    exit 1
+fi
+
 
 echo -n
 # build the modtools library

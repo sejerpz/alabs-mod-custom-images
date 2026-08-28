@@ -1,16 +1,14 @@
 #!/bin/bash
-ALABS_ROOT=$(pwd)
-ALABS_DIR=$(basename $ALABS_ROOT)
-PLATFORM=$1
-DOCKER_IMAGE=$PLATFORM-dev:latest
-DOCKER_NAME=$PLATFORM-dev-$(uuidgen)
-DOCKER_SRC=/root/source
+
+# source global configs
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/config.sh"
 
 # setup the environment for the build
-echo "starting docker container build enviroment for platform $PLATFORM mapping $ALABS_ROOT to $DOCKER_SRC"
-docker run --name "$DOCKER_NAME" -dt -v $ALABS_ROOT:$DOCKER_SRC $DOCKER_IMAGE
+echo "starting docker container build enviroment for platform $PLATFORM mapping $ALABS_ROOT to $DOCKER_SRC_ROOT"
+docker run --name "$DOCKER_NAME" -dt -v $ALABS_ROOT:$DOCKER_SRC_ROOT $DOCKER_IMAGE
 
-docker exec -t "$DOCKER_NAME" "$DOCKER_SRC/build-mod-binaries" $1
+docker exec -t "$DOCKER_NAME" "$DOCKER_SRC_ROOT/build-mod-binaries" $1
 
 echo "stopping docker container build enviroment"
 docker stop "$DOCKER_NAME"

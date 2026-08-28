@@ -2,3 +2,4 @@
 *.tar.sha1
 mod-dwarf-controller.bin
 deps/
+keys/

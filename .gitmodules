@@ -5,7 +5,7 @@
 [submodule "mod-dwarf-controller"]
 	path = mod-dwarf-controller
 	url = git@github.com:sejerpz/mod-dwarf-controller
-	branch = features/builder
+	branch = starless
 [submodule "mod-host"]
 	path = mod-host
 	url = git@github.com:sejerpz/mod-host.git

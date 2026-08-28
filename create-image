@@ -1,37 +1,36 @@
 #!/bin/bash
-if [ "$1" != "update" ] && [ "$1" != "build" ] && [ "$1" != "build-deps" ] && [ "$1" != "tag" ] && [ "$1" != "release" ]
-  then
-	echo "Invalid command supplied"
-	echo "    available commands: update | build | build-deps | tag"
-	exit 1
-fi
 
-if [ "$2" != "moddwarf-new" ] && [ "$2" != "modduox-new" ]
+# source global configs
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/config.sh"
+
+if [ "$1" != "moddwarf-new" ] && [ "$1" != "modduox-new" ] && [ "$1" != "tag" ]
   then
 	echo "Invalid platform supplied"
 	echo "    available platforms: moddwarf-new | modduox-new"
+	echo "    use: create-image <platform> <command> ..."
 	exit 1
 fi
 
-if [[ "$1" == "build" || "$1" == "release" ]] && [ -z "$2" ]
+if [ "$2" != "update" ] && [ "$2" != "build" ] && [ "$2" != "release" ]
   then
-	echo "No platform supplied"
-	echo "    usage: create-image build <platform> <base-image-name.tar> <custom-version-name>"
-	echo "    example: create-image build moddwarf-new moddwarf-1.0.0.tar alabs42"
+	echo "Invalid command supplied"
+	echo "    available commands: update | build | tag | release"
 	exit 1
 fi
-if [[ "$1" == "build" || "$1" == "release" ]] && [ -z "$3" ]
+
+if [[ "$2" == "build" || "$2" == "release" ]] && [ -z "$3" ]
   then
 	echo "No tar base image supplied"
-	echo "    usage: create-image build <platform> <base-image-name.tar> <custom-version-name>"
-	echo "    example: create-image build moddwarf-new moddwarf-1.0.0.tar alabs42"
+	echo "    usage: create-image <platform> build <base-image-name.tar> <custom-version-name>"
+	echo "    example: create-image moddwarf-new build moddwarf-1.0.0.tar alabs42"
 	exit 1
 fi
-if [[ "$1" == "build" || "$1" == "release" ]] && [ -z "$4" ]
+if [[ "$2" == "build" || "$2" == "release" ]] && [ -z "$4" ]
   then
 	echo "No version name supplied"
-	echo "    usage: create-image build <platform> <base-image-name.tar> <custom-version-name>"
-	echo "    example: create-image build moddwarf-new moddwarf-1.0.0.tar alabs42"
+	echo "    usage: create-image <platform> build <base-image-name.tar> <custom-version-name>"
+	echo "    example: create-image moddwarf-new build moddwarf-1.0.0.tar alabs42"
 	exit 1
 fi
 
@@ -43,10 +42,7 @@ if [ "$1" = "tag" ] && [ -z "$2" ]
 	exit 1
 fi
 
-
-SRC_DIR=`pwd`
-COMMAND=$1
-PLATFORM=$2
+COMMAND=$2
 TAR_BASE_IMAGE=$3
 TAG_NAME=$3
 TAG_VERSION=${TAG_NAME#alabs}
@@ -58,56 +54,50 @@ VER_IMAGE=${TAR_NAME#*-}
 VER_BASE=${VER_IMAGE%.*}
 VER_BASE_BUILD=${VER_IMAGE:${#VER_BASE}+1:10}
 
-if [[ "$1" == "update" || "$1" == "release" ]]
-  then
-	echo "UPDATE GIT SUBMODULES"
-	git submodule update --init --remote --recursive
-	git add $SRC_DIR/mod-dwarf-controller
-	git add $SRC_DIR/mod-ui
-	git add $SRC_DIR/mod-host
-
-	# exit if command is update, otherwise continue to build the image
-	if [ "$1" = "update" ]; then
-		exit $?
-	fi
-fi
 
 if [ "$1" = "tag" ]
   then
 	echo "TAGGING GIT REPOSITORIES"
-	git -C $SRC_DIR/mod-dwarf-controller tag -a $TAG_NAME -m "aLabs release $TAG_VERSION"
-	git -C $SRC_DIR/mod-ui tag -a $TAG_NAME -m "aLabs release $TAG_VERSION"
-	git -C $SRC_DIR/mod-host tag -a $TAG_NAME -m "aLabs release $TAG_VERSION"
+	git -C $ALABS_ROOT/mod-dwarf-controller tag -a $TAG_NAME -m "aLabs release $TAG_VERSION"
+	git -C $ALABS_ROOT/mod-ui tag -a $TAG_NAME -m "aLabs release $TAG_VERSION"
+	git -C $ALABS_ROOT/mod-host tag -a $TAG_NAME -m "aLabs release $TAG_VERSION"
 	git tag -a $TAG_NAME -m "aLabs release $TAG_VERSION"
 	exit $?
 fi
 
-if [ "$1" = "build-deps" ]
-  then
-	echo 'Cloning dependencies'
-	if [ ! -d $SRC_DIR/deps/cc-master ]; then
-		git clone --depth 1 --branch master https://github.com/mod-audio/cc-master.git $SRC_DIR/deps/cc-master
-	fi
+# STARTING CREATE IMAGE
 
-	echo 'Building dependencies'
-	bash build-modtools build-deps
-	if [ ! $? -eq 0 ]; then
-		echo 'Fail to build dependencies'
-		exit 1
-	fi
-	echo 'Dependencies built successfully. Use create-image with build or release to build the image'
-	exit 0
-fi
 
-echo 'MOD IMAGE BUILDER'
+echo 'ALABS MOD IMAGE BUILDER'
 echo '    platform.........: ' $PLATFORM
 echo '    base image.......: ' $IMAGE_NAME
 echo '    base image vers..: ' $VER_IMAGE
-echo '    source dir.......: ' $SRC_DIR
+echo '    source dir.......: ' $ALABS_ROOT
 echo '    custom build.....: ' $VERSION
 echo '    custom firmware..: ' $FIRMWARE_DIR
 echo ' '
 read -p 'Press ENTER key to start' PROCEED
+echo ' '
+
+if [[ "$2" == "update" || "$2" == "release" ]]
+  then
+	echo "Update GIT submodules"
+	git submodule update --init --remote --recursive
+	git add $ALABS_ROOT/mod-dwarf-controller
+	git add $ALABS_ROOT/mod-ui
+	git add $ALABS_ROOT/mod-host
+
+	echo 'Update dependencies'
+	if [ ! -d $ALABS_ROOT/deps/cc-master ]; then
+		git clone --depth 1 --branch master https://github.com/mod-audio/cc-master.git $ALABS_ROOT/deps/cc-master
+	fi
+
+	# exit if command is update, otherwise continue to build the image
+	if [ "$2" = "update" ]; then
+		echo 'Done'
+		exit $?
+	fi
+fi
 
 echo -n 'Source dir sanity check...'
 if [ -z $IMAGE_NAME ]; then
@@ -115,15 +105,15 @@ if [ -z $IMAGE_NAME ]; then
 	exit 1
 fi
 # check mod ui sources
-if [ ! -d $SRC_DIR/mod-ui ]; then
-	echo '    [ERR] MOD-UI sources not found in ' $SRC_DIR'/mod-ui'
+if [ ! -d $ALABS_ROOT/mod-ui ]; then
+	echo '    [ERR] MOD-UI sources not found in ' $ALABS_ROOT'/mod-ui'
 	exit 1
 fi
 
 if [ $PLATFORM = "moddwarf-new" ]; then
 	echo '    Building custom HMI firmware from ' $FIRMWARE_DIR
 
-	FIRMWARE_DIR=$SRC_DIR/mod-dwarf-controller
+	FIRMWARE_DIR=$ALABS_ROOT/mod-dwarf-controller
 	CONTROLLER_GIT_HASH=`git -C $FIRMWARE_DIR rev-parse HEAD`
 	CONTROLLER_GIT_DATE=`git -C $FIRMWARE_DIR show --no-patch --format=%cd HEAD`
 	if [ ! $? -eq 0 ]; then
@@ -145,10 +135,10 @@ else
 fi
 
 
-STARLESS_GIT_HASH=`git -C $SRC_DIR rev-parse HEAD`
+STARLESS_GIT_HASH=`git -C $ALABS_ROOT rev-parse HEAD`
 
 echo 'passed'
-cd $SRC_DIR
+cd $ALABS_ROOT
 
 echo 'Building mod binaries using docker build enviroment'
 bash docker-build $PLATFORM
@@ -156,7 +146,6 @@ if [ ! $? -eq 0 ]; then
 	echo 'Fail to build modtools library'
 	exit 1
 fi
-
 
 echo 'Cleaning up'
 rm -rf $IMAGE_NAME
@@ -187,10 +176,10 @@ sudo rm -rf $BASE_SYSTEM_DIR/usr/lib/python3.4/site-packages/mod/*
 sudo rm -rf $BASE_SYSTEM_DIR/usr/share/mod/html/*
 
 echo 'Copying new files: mod-ui'
-sudo cp -ar $SRC_DIR/mod-ui/utils/libmod_utils.so $BASE_SYSTEM_DIR/usr/lib/python3.4/site-packages/modtools/
-sudo cp -ar $SRC_DIR/mod-ui/modtools/* $BASE_SYSTEM_DIR/usr/lib/python3.4/site-packages/modtools/
-sudo cp -ar $SRC_DIR/mod-ui/mod/* $BASE_SYSTEM_DIR/usr/lib/python3.4/site-packages/mod/
-sudo cp -ar $SRC_DIR/mod-ui/html/* $BASE_SYSTEM_DIR/usr/share/mod/html/
+sudo cp -ar $ALABS_ROOT/mod-ui/utils/libmod_utils.so $BASE_SYSTEM_DIR/usr/lib/python3.4/site-packages/modtools/
+sudo cp -ar $ALABS_ROOT/mod-ui/modtools/* $BASE_SYSTEM_DIR/usr/lib/python3.4/site-packages/modtools/
+sudo cp -ar $ALABS_ROOT/mod-ui/mod/* $BASE_SYSTEM_DIR/usr/lib/python3.4/site-packages/mod/
+sudo cp -ar $ALABS_ROOT/mod-ui/html/* $BASE_SYSTEM_DIR/usr/share/mod/html/
 
 # remove some unused dirs
 sudo rm -rf $BASE_SYSTEM_DIR/usr/lib/python3.4/site-packages/mod/old
@@ -199,11 +188,15 @@ sudo rm -rf $BASE_SYSTEM_DIR/usr/lib/python3.4/site-packages/mod/__pycache__/*
 sudo rm -rf $BASE_SYSTEM_DIR/usr/lib/python3.4/site-packages/modtools/__pycache__/*
 
 echo 'Copying new files: mod-host'
-sudo cp -ar $SRC_DIR/mod-host/mod-host $BASE_SYSTEM_DIR/usr/bin
-sudo cp -ar $SRC_DIR/mod-host/mod-host.so $BASE_SYSTEM_DIR/usr/lib/jack/
-sudo cp -ar $SRC_DIR/mod-host/fake-input.so $BASE_SYSTEM_DIR/usr/lib/jack/
-sudo cp -ar $SRC_DIR/mod-host/mod-monitor.so $BASE_SYSTEM_DIR/usr/lib/jack/
+sudo cp -ar $ALABS_ROOT/mod-host/mod-host $BASE_SYSTEM_DIR/usr/bin
+sudo cp -ar $ALABS_ROOT/mod-host/mod-host.so $BASE_SYSTEM_DIR/usr/lib/jack/
+sudo cp -ar $ALABS_ROOT/mod-host/fake-input.so $BASE_SYSTEM_DIR/usr/lib/jack/
+sudo cp -ar $ALABS_ROOT/mod-host/mod-monitor.so $BASE_SYSTEM_DIR/usr/lib/jack/
 
+if [ -d $ALABS_ROOT/keys ]; then
+	echo 'Copying alabs api keys'
+	sudo cp -ar $ALABS_ROOT/keys/* $BASE_SYSTEM_DIR/usr/share/mod/keys/
+fi
 
 echo 'Update mod-os release'
 
