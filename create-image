@@ -12,7 +12,7 @@ if [ "$1" != "moddwarf-new" ] && [ "$1" != "modduox-new" ] && [ "$1" != "tag" ]
 	exit 1
 fi
 
-if [ "$2" != "update" ] && [ "$2" != "build" ] && [ "$2" != "release" ]
+if [ $1 != "tag" ] && [ "$2" != "update" ] && [ "$2" != "build" ] && [ "$2" != "release" ]
   then
 	echo "Invalid command supplied"
 	echo "    available commands: update | build | tag | release"
@@ -53,7 +53,6 @@ IMAGE_NAME="$TAR_NAME-$VERSION"
 VER_IMAGE=${TAR_NAME#*-}
 VER_BASE=${VER_IMAGE%.*}
 VER_BASE_BUILD=${VER_IMAGE:${#VER_BASE}+1:10}
-
 
 if [ "$1" = "tag" ]
   then
