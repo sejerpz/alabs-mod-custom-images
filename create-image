@@ -44,7 +44,7 @@ fi
 
 COMMAND=$2
 TAR_BASE_IMAGE=$3
-TAG_NAME=$3
+TAG_NAME=$2
 TAG_VERSION=${TAG_NAME#alabs}
 VERSION=$4
 filename=$(basename -- "$TAR_BASE_IMAGE")
