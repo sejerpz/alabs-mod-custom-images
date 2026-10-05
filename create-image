@@ -4,10 +4,10 @@
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/config.sh"
 
-if [ "$1" != "moddwarf-new" ] && [ "$1" != "modduox-new" ] && [ "$1" != "tag" ]
+if [ "$1" != "moddwarf-new" ] && [ "$1" != "modduox-new" ] && [ "$1" != "modduo-new" ] && [ "$1" != "tag" ]
   then
 	echo "Invalid platform supplied"
-	echo "    available platforms: moddwarf-new | modduox-new"
+	echo "    available platforms: moddwarf-new | modduox-new | modduo-new"
 	echo "    use: create-image <platform> <command> ..."
 	exit 1
 fi
@@ -66,6 +66,18 @@ fi
 
 # STARTING CREATE IMAGE
 
+if [ $PLATFORM = "moddwarf-new" ]; then
+	FIRMWARE_DIR=$ALABS_ROOT/mod-dwarf-controller
+	FIRMWARE_TARGET=moddwarf
+elif [ $PLATFORM = "modduox-new" ]; then
+	FIRMWARE_DIR=$ALABS_ROOT/mod-duox-controller
+	FIRMWARE_TARGET=modduox
+elif [ $PLATFORM = "modduo-new" ]; then
+	FIRMWARE_DIR=$ALABS_ROOT/mod-duo-controller
+	FIRMWARE_TARGET=modduo
+else
+	echo '    Custom HMI firmware sources not supported for this platform, using prebuilt firmware'
+fi
 
 echo 'ALABS MOD IMAGE BUILDER'
 echo '    platform.........: ' $PLATFORM
@@ -109,10 +121,9 @@ if [ ! -d $ALABS_ROOT/mod-ui ]; then
 	exit 1
 fi
 
-if [ $PLATFORM = "moddwarf-new" ]; then
+if [ $FIRMWARE_DIR != "" ]; then
 	echo '    Building custom HMI firmware from ' $FIRMWARE_DIR
 
-	FIRMWARE_DIR=$ALABS_ROOT/mod-dwarf-controller
 	CONTROLLER_GIT_HASH=`git -C $FIRMWARE_DIR rev-parse HEAD`
 	CONTROLLER_GIT_DATE=`git -C $FIRMWARE_DIR show --no-patch --format=%cd HEAD`
 	if [ ! $? -eq 0 ]; then
@@ -123,16 +134,12 @@ if [ $PLATFORM = "moddwarf-new" ]; then
 
 	cd $FIRMWARE_DIR
 	make clean
-	make moddwarf
+	make $FIRMWARE_TARGET
 	if [ ! $? -eq 0 ]; then
 		echo 'Fail to build controller firmware'
 		exit 1
 	fi
-
-else
-	echo '    Custom HMI firmware sources not supported for this platform, using prebuilt firmware'
 fi
-
 
 STARLESS_GIT_HASH=`git -C $ALABS_ROOT rev-parse HEAD`
 
@@ -247,7 +254,8 @@ EOL
 sudo chmod o-w $BASE_SYSTEM_DIR/etc/mod-release/system
 
 sudo chmod o+w $IMAGE_NAME/VERSIONS
-cat > $IMAGE_NAME/VERSIONS  <<EOL
+if [ $PLATFORM = "moddwarf-new" ]; then
+	cat > $IMAGE_NAME/VERSIONS  <<EOL
 version=${VER_BASE}
 build=${VER_BASE_BUILD}-${VERSION}
 version.build=${VER_IMAGE}-${VERSION}
@@ -257,6 +265,35 @@ system=${STARLESS_GIT_HASH}
 controller=${CONTROLLER_GIT_HASH}
 platform=moddwarf
 EOL
+elif [ $PLATFORM = "modduox-new" ]; then
+	cat > $IMAGE_NAME/VERSIONS  <<EOL
+version=${VER_BASE}
+build=${VER_BASE_BUILD}-${VERSION}
+version.build=${VER_IMAGE}-${VERSION}
+label=
+restore=48de0f238fdb1ff138a734a1272c
+system=${STARLESS_GIT_HASH}
+controller=${CONTROLLER_GIT_HASH}
+platform=modduox
+supported=cl-imx8mq,gr-rk3399
+EOL
+elif [ $PLATFORM = "modduo-new" ]; then
+	cat > $IMAGE_NAME/VERSIONS  <<EOL
+version=${VER_BASE}
+build=${VER_BASE_BUILD}-${VERSION}
+version.build=${VER_IMAGE}-${VERSION}
+label=
+restore=48de0f238fdb1ff138a734a1272c
+system=${STARLESS_GIT_HASH}
+controller=${CONTROLLER_GIT_HASH}
+platform=modduo
+supported=legacy,mainline
+EOL
+else
+	echo 'No VERSIONS generated for this unsupported platform: ' $PLATFORM
+	exit 1
+fi
+
 sudo chmod o-w $IMAGE_NAME/VERSIONS
 
 echo 'Repacking system distribution' 
@@ -266,10 +303,17 @@ echo 'Calculating checksum'
 rm -f $IMAGE_NAME/SHA1SUMS
 if [ $PLATFORM = "moddwarf-new" ]; then
 	sha1sum $IMAGE_NAME/mod-dwarf-controller.bin | sed "s/$IMAGE_NAME\///" >> $IMAGE_NAME/SHA1SUMS
-else
+elif [ $PLATFORM = "modduox-new" ]; then
 	# standard duox firmaware
 	sha1sum $IMAGE_NAME/mod-duox-controller.bin | sed "s/$IMAGE_NAME\///" >> $IMAGE_NAME/SHA1SUMS
 	sha1sum $IMAGE_NAME/mod-duox-le-controller.bin | sed "s/$IMAGE_NAME\///" >> $IMAGE_NAME/SHA1SUMS
+elif [ $PLATFORM = "modduo-new" ]; then
+	# standard duo firmaware
+	sha1sum $IMAGE_NAME/mod-controller.bin | sed "s/$IMAGE_NAME\///" >> $IMAGE_NAME/SHA1SUMS
+	sha1sum $IMAGE_NAME/restore-mainline.tar.xz | sed "s/${IMAGE_NAME}\///" >> $IMAGE_NAME/SHA1SUMS
+else
+	echo 'No firmware checksum generated for this unsupported platform: ' $PLATFORM
+	exit 1
 fi
 sha1sum $IMAGE_NAME/restore.tar.xz | sed "s/${IMAGE_NAME}\///" >> $IMAGE_NAME/SHA1SUMS
 sha1sum $IMAGE_NAME/system.tar.xz | sed "s/${IMAGE_NAME}\///" >> $IMAGE_NAME/SHA1SUMS

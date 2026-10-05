@@ -17,9 +17,9 @@ if ! pkg-config --exists cc_client; then
         echo "uninstalling cc-master"
         ./waf uninstall || echo "Failed to uninstall cc-master, continuing with build";
     fi
-    ./waf configure --prefix=$WORKDIR/$PLATFORM/host/usr/aarch64-buildroot-linux-gnu/sysroot/usr || { echo "Failed to configure cc-master"; exit 1; }
+    ./waf configure --prefix=/usr || { echo "Failed to configure cc-master"; exit 1; }
     ./waf build || { echo "Failed to build cc-master"; exit 1; }
-    ./waf install || { echo "Failed to install cc-master"; exit 1; }
+    ./waf install --destdir=$STAGING_DIR || { echo "Failed to install cc-master"; exit 1; }
     cd $DOCKER_SRC_ROOT
 fi
 

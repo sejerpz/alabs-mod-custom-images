@@ -16,8 +16,8 @@ if [ -f /.dockerenv ]; then
 DOCKER_IMAGE='(inside docker container)'
 DOCKER_NAME='-'
 else
-DOCKER_IMAGE=$PLATFORM-dev-complete:latest
-DOCKER_NAME=$PLATFORM-dev-$(uuidgen)
+DOCKER_IMAGE=$PLATFORM:latest
+DOCKER_NAME=$PLATFORM-$(uuidgen)
 fi
 DOCKER_SRC_ROOT=/root/source
 
