@@ -10,3 +10,7 @@
 	path = mod-host
 	url = git@github.com:sejerpz/mod-host.git
 	branch = starless
+[submodule "alabs-mod-diagnostics-logs"]
+	path = alabs-mod-diagnostics-logs
+	url = git@github.com:sejerpz/alabs-mod-diagnostics-logs.git
+	branch = main
