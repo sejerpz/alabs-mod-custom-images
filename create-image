@@ -60,6 +60,7 @@ if [ "$1" = "tag" ]
 	git -C $ALABS_ROOT/mod-dwarf-controller tag -a $TAG_NAME -m "aLabs release $TAG_VERSION"
 	git -C $ALABS_ROOT/mod-ui tag -a $TAG_NAME -m "aLabs release $TAG_VERSION"
 	git -C $ALABS_ROOT/mod-host tag -a $TAG_NAME -m "aLabs release $TAG_VERSION"
+	git -C $ALABS_ROOT/alabs-mod-diagnostics-logs tag -a $TAG_NAME -m "aLabs release $TAG_VERSION"
 	git tag -a $TAG_NAME -m "aLabs release $TAG_VERSION"
 	exit $?
 fi
@@ -86,6 +87,18 @@ echo '    base image vers..: ' $VER_IMAGE
 echo '    source dir.......: ' $ALABS_ROOT
 echo '    custom build.....: ' $VERSION
 echo '    custom firmware..: ' $FIRMWARE_DIR
+
+# alabs-mod-wifi release of this platform, if any
+ALABS_MOD_WIFI_SUM=${ALABS_MOD_WIFI_SHA256[$FIRMWARE_TARGET]}
+ALABS_MOD_WIFI_ARCHIVE=alabs-mod-wifi-$ALABS_MOD_WIFI_VERSION-$FIRMWARE_TARGET.tar.gz
+ALABS_MOD_WIFI_URL=https://github.com/sejerpz/alabs-mod-wifi/releases/download/v$ALABS_MOD_WIFI_VERSION/$ALABS_MOD_WIFI_ARCHIVE
+ALABS_MOD_WIFI_FILE=$ALABS_ROOT/deps/$ALABS_MOD_WIFI_ARCHIVE
+if [ -n "$ALABS_MOD_WIFI_SUM" ]; then
+	echo '    alabs-mod-wifi...: ' $ALABS_MOD_WIFI_ARCHIVE
+else
+	echo '    alabs-mod-wifi...:  not released for' $FIRMWARE_TARGET', image without WiFi access point'
+fi
+echo '    report a problem.: ' ${ALABS_FEEDBACK_URL:-mod-ui default}
 echo ' '
 read -p 'Press ENTER key to start' PROCEED
 echo ' '
@@ -97,6 +110,7 @@ if [[ "$2" == "update" || "$2" == "release" ]]
 	git add $ALABS_ROOT/mod-dwarf-controller
 	git add $ALABS_ROOT/mod-ui
 	git add $ALABS_ROOT/mod-host
+	git add $ALABS_ROOT/alabs-mod-diagnostics-logs
 
 	echo 'Update dependencies'
 	if [ ! -d $ALABS_ROOT/deps/cc-master ]; then
@@ -119,6 +133,35 @@ fi
 if [ ! -d $ALABS_ROOT/mod-ui ]; then
 	echo '    [ERR] MOD-UI sources not found in ' $ALABS_ROOT'/mod-ui'
 	exit 1
+fi
+
+# the system files are handled with fakeroot, no root password needed
+if ! command -v fakeroot > /dev/null; then
+	echo '    [ERR] fakeroot not found, install it (e.g. apt install fakeroot)'
+	exit 1
+fi
+
+# diagnostics report (submodule)
+if [ $PLATFORM = "moddwarf-new" ] && [ ! -x $ALABS_ROOT/alabs-mod-diagnostics-logs/diagnostics-logs ]; then
+	echo '    [ERR] alabs-mod-diagnostics-logs not found, run: create-image moddwarf-new update'
+	exit 1
+fi
+
+# WiFi: binary release of alabs-mod-wifi, kept in deps/ and checked against its sha256
+if [ -n "$ALABS_MOD_WIFI_SUM" ]; then
+	if [ ! -f $ALABS_MOD_WIFI_FILE ]; then
+		mkdir -p $ALABS_ROOT/deps
+		curl -fL -o $ALABS_MOD_WIFI_FILE.part $ALABS_MOD_WIFI_URL && mv $ALABS_MOD_WIFI_FILE.part $ALABS_MOD_WIFI_FILE
+		if [ ! $? -eq 0 ]; then
+			rm -f $ALABS_MOD_WIFI_FILE.part
+			echo '    [ERR] cannot download ' $ALABS_MOD_WIFI_URL
+			exit 1
+		fi
+	fi
+	if ! echo "$ALABS_MOD_WIFI_SUM  $ALABS_MOD_WIFI_FILE" | sha256sum -c --quiet; then
+		echo '    [ERR] wrong sha256 for ' $ALABS_MOD_WIFI_FILE ', remove it to download it again'
+		exit 1
+	fi
 fi
 
 if [ $FIRMWARE_DIR != "" ]; then
@@ -165,7 +208,19 @@ tar -xf $TAR_BASE_IMAGE -C $IMAGE_NAME
 echo 'Extracting original system image: ' $TAR_BASE_IMAGE
 BASE_SYSTEM_DIR=$IMAGE_NAME/tmp/system
 mkdir -p $BASE_SYSTEM_DIR
-sudo tar -xpf $IMAGE_NAME/system.tar.xz -C $BASE_SYSTEM_DIR
+
+# Everything in $BASE_SYSTEM_DIR is done through asroot, as the user: fakeroot
+# keeps in FAKEROOT_STATE the owners, modes and device nodes the system files
+# would have as root, and the repacked system.tar.xz gets them. A command that
+# writes there without asroot leaves a file owned by the user in the image.
+FAKEROOT_STATE=$IMAGE_NAME/tmp/fakeroot.state
+: > $FAKEROOT_STATE
+asroot()
+{
+	fakeroot -i $FAKEROOT_STATE -s $FAKEROOT_STATE -- "$@"
+}
+
+asroot tar -xpf $IMAGE_NAME/system.tar.xz -C $BASE_SYSTEM_DIR
 
 # fix console device
 #sudo mknod $BASE_SYSTEM_DIR/./dev/console c 5 1
@@ -177,31 +232,95 @@ fi
 rm -f $IMAGE_NAME/system.tar.xz 
 
 echo 'Removing original files'
-sudo rm -rf $BASE_SYSTEM_DIR/usr/lib/python3.4/site-packages/modtools/*
-sudo rm -rf $BASE_SYSTEM_DIR/usr/lib/python3.4/site-packages/mod/*
-sudo rm -rf $BASE_SYSTEM_DIR/usr/share/mod/html/*
+asroot rm -rf $BASE_SYSTEM_DIR/usr/lib/python3.4/site-packages/modtools/*
+asroot rm -rf $BASE_SYSTEM_DIR/usr/lib/python3.4/site-packages/mod/*
+asroot rm -rf $BASE_SYSTEM_DIR/usr/share/mod/html/*
 
-echo 'Copying new files: mod-ui'
-sudo cp -ar $ALABS_ROOT/mod-ui/utils/libmod_utils.so $BASE_SYSTEM_DIR/usr/lib/python3.4/site-packages/modtools/
-sudo cp -ar $ALABS_ROOT/mod-ui/modtools/* $BASE_SYSTEM_DIR/usr/lib/python3.4/site-packages/modtools/
-sudo cp -ar $ALABS_ROOT/mod-ui/mod/* $BASE_SYSTEM_DIR/usr/lib/python3.4/site-packages/mod/
-sudo cp -ar $ALABS_ROOT/mod-ui/html/* $BASE_SYSTEM_DIR/usr/share/mod/html/
+echo 'Copying new files: mod-ui (setup.py)'
+# installed the way MOD does, by setup.py: a file setup.py does not list is not
+# in the image either. Staged as the user, then copied in the image owned by root.
+MODUI_STAGE=$(mktemp -d)
+MODUI_SITE=/usr/lib/python3.4/site-packages
+rm -rf $ALABS_ROOT/mod-ui/build
+# - build_py only: the "build" of setup.py runs "make -C utils" with the host
+#   compiler, libmod_utils.so is already built for the device by docker-build
+# - no .pyc: the host python is not the 3.4 of the device
+# - no scripts: /usr/bin/mod-ui of the image loads mod.webserver through the
+#   egg-info of the image, a host python shebang would break it
+# - every directory explicit: the python of Debian turns --prefix=/usr into /usr/local
+# - "setup.py install is deprecated" silenced: pip would build a wheel and skip the
+#   install hook of setup.py that copies libmod_utils.so; when setuptools drops
+#   "setup.py install" this fails, it does not make an incomplete image
+(cd $ALABS_ROOT/mod-ui && \
+	python3 setup.py -q build_py && \
+	PYTHONWARNINGS="ignore:setup.py install is deprecated" python3 setup.py -q install --skip-build --no-compile --root=$MODUI_STAGE --prefix=/usr \
+		--install-lib=$MODUI_SITE --install-data=/usr --install-scripts=/unused-scripts)
+if [ ! $? -eq 0 ] || [ ! -f $MODUI_STAGE$MODUI_SITE/mod/webserver.py ] || [ ! -f $MODUI_STAGE$MODUI_SITE/modtools/libmod_utils.so ]; then
+	echo 'Fail to install mod-ui with setup.py'
+	rm -rf $MODUI_STAGE
+	exit 1
+fi
+rm -rf $MODUI_STAGE/unused-scripts
+# the egg-info of the image (mod-0.99.8-py3.4) stays, this one is named after the host python
+rm -rf $MODUI_STAGE$MODUI_SITE/mod-*.egg-info
+# the default pedalboard of the image is made for its platform, the one of the repo is not
+rm -rf $MODUI_STAGE/usr/share/mod/default.pedalboard
+# owned by root (the staged files are the user's), existing directories keep their attributes
+tar -cf - -C $MODUI_STAGE . | asroot tar -xf - -C $BASE_SYSTEM_DIR --no-same-owner --no-overwrite-dir
+if [ ! $? -eq 0 ]; then
+	echo 'Fail to copy mod-ui in the image'
+	rm -rf $MODUI_STAGE
+	exit 1
+fi
+rm -rf $MODUI_STAGE $ALABS_ROOT/mod-ui/build
 
 # remove some unused dirs
-sudo rm -rf $BASE_SYSTEM_DIR/usr/lib/python3.4/site-packages/mod/old
-sudo rm -rf $BASE_SYSTEM_DIR/usr/lib/python3.4/site-packages/mod/knob-utils
-sudo rm -rf $BASE_SYSTEM_DIR/usr/lib/python3.4/site-packages/mod/__pycache__/*
-sudo rm -rf $BASE_SYSTEM_DIR/usr/lib/python3.4/site-packages/modtools/__pycache__/*
+asroot rm -rf $BASE_SYSTEM_DIR/usr/lib/python3.4/site-packages/mod/old
+asroot rm -rf $BASE_SYSTEM_DIR/usr/lib/python3.4/site-packages/mod/knob-utils
+asroot rm -rf $BASE_SYSTEM_DIR/usr/lib/python3.4/site-packages/mod/__pycache__/*
+asroot rm -rf $BASE_SYSTEM_DIR/usr/lib/python3.4/site-packages/modtools/__pycache__/*
 
 echo 'Copying new files: mod-host'
-sudo cp -ar $ALABS_ROOT/mod-host/mod-host $BASE_SYSTEM_DIR/usr/bin
-sudo cp -ar $ALABS_ROOT/mod-host/mod-host.so $BASE_SYSTEM_DIR/usr/lib/jack/
-sudo cp -ar $ALABS_ROOT/mod-host/fake-input.so $BASE_SYSTEM_DIR/usr/lib/jack/
-sudo cp -ar $ALABS_ROOT/mod-host/mod-monitor.so $BASE_SYSTEM_DIR/usr/lib/jack/
+# mode and times of the build, not its owner: in the image they are root's
+asroot cp -r --preserve=mode,timestamps $ALABS_ROOT/mod-host/mod-host $BASE_SYSTEM_DIR/usr/bin
+asroot cp -r --preserve=mode,timestamps $ALABS_ROOT/mod-host/mod-host.so $BASE_SYSTEM_DIR/usr/lib/jack/
+asroot cp -r --preserve=mode,timestamps $ALABS_ROOT/mod-host/fake-input.so $BASE_SYSTEM_DIR/usr/lib/jack/
+asroot cp -r --preserve=mode,timestamps $ALABS_ROOT/mod-host/mod-monitor.so $BASE_SYSTEM_DIR/usr/lib/jack/
+
+if [ -n "$ALABS_MOD_WIFI_SUM" ]; then
+	echo 'Copying new files: alabs-mod-wifi' $ALABS_MOD_WIFI_VERSION
+	# overlay of the root filesystem; existing directories keep their attributes
+	asroot tar -xpf $ALABS_MOD_WIFI_FILE -C $BASE_SYSTEM_DIR --no-overwrite-dir
+	# kernel version the module was built for, from the archive
+	ALABS_MOD_WIFI_KVER=$(tar -tzf $ALABS_MOD_WIFI_FILE | sed -n 's|^\./usr/lib/modules/\([^/]*\)/$|\1|p' | head -1)
+	if [ -z "$ALABS_MOD_WIFI_KVER" ] || ! asroot /usr/sbin/depmod -b $BASE_SYSTEM_DIR $ALABS_MOD_WIFI_KVER; then
+		echo 'Fail to install alabs-mod-wifi'
+		exit 1
+	fi
+fi
+
+if [ $PLATFORM = "moddwarf-new" ]; then
+	echo 'Copying new files: alabs-mod-diagnostics-logs'
+	DIAG_SRC=$ALABS_ROOT/alabs-mod-diagnostics-logs
+	DIAG_DIR=$BASE_SYSTEM_DIR/usr/lib/diagnostics-logs
+	asroot install -D -o root -g root -m 755 $DIAG_SRC/diagnostics-logs $BASE_SYSTEM_DIR/usr/bin/diagnostics-logs
+	asroot install -D -o root -g root -m 644 $DIAG_SRC/VERSION $DIAG_DIR/VERSION
+	asroot install -D -o root -g root -m 644 $DIAG_SRC/LICENSE $DIAG_DIR/LICENSE
+	asroot install -o root -g root -m 755 -t $DIAG_DIR/providers.d $DIAG_SRC/providers.d/*
+fi
+
+if [ -n "$ALABS_FEEDBACK_URL" ]; then
+	echo 'Setting the report a problem link: ' $ALABS_FEEDBACK_URL
+	# drop-in of the mod-ui unit, the unit itself is left as MOD ships it;
+	# "%" starts a specifier in a unit file, "%%" is a literal one
+	FEEDBACK_DROPIN=$BASE_SYSTEM_DIR/etc/systemd/system/mod-ui.service.d/feedback.conf
+	asroot install -d -o root -g root -m 755 $(dirname $FEEDBACK_DROPIN)
+	printf '[Service]\nEnvironment="MOD_FEEDBACK_URL=%s"\n' "${ALABS_FEEDBACK_URL//%/%%}" | asroot install -o root -g root -m 644 /dev/stdin $FEEDBACK_DROPIN
+fi
 
 if [ -d $ALABS_ROOT/keys ]; then
 	echo 'Copying alabs api keys'
-	sudo cp -ar $ALABS_ROOT/keys/* $BASE_SYSTEM_DIR/usr/share/mod/keys/
+	asroot cp -r --preserve=mode,timestamps $ALABS_ROOT/keys/* $BASE_SYSTEM_DIR/usr/share/mod/keys/
 fi
 
 echo 'Update mod-os release'
@@ -211,14 +330,9 @@ if [ $PLATFORM = "moddwarf-new" ]; then
 	cp -ar $FIRMWARE_DIR/out/mod-dwarf-controller.bin $IMAGE_NAME/
 
 	# copy firmware and debug symbols in the new image
-	sudo chmod o+w $BASE_SYSTEM_DIR/usr/share/mod/controller
-	sudo chmod o+w $BASE_SYSTEM_DIR/usr/share/mod/controller/mod-dwarf-controller.bin
-	sudo chmod o+w $BASE_SYSTEM_DIR/usr/share/mod/controller/version
-	cp $FIRMWARE_DIR/out/mod-dwarf-controller.bin $BASE_SYSTEM_DIR/usr/share/mod/controller/mod-dwarf-controller.bin
-	cp $FIRMWARE_DIR/out/mod-dwarf-controller.dbg $BASE_SYSTEM_DIR/usr/share/mod/controller/mod-dwarf-controller.dbg
-	cat > $BASE_SYSTEM_DIR/usr/share/mod/controller/version <<EOL
-${CONTROLLER_GIT_HASH}
-EOL
+	asroot install -o root -g root -m 644 $FIRMWARE_DIR/out/mod-dwarf-controller.bin $BASE_SYSTEM_DIR/usr/share/mod/controller/mod-dwarf-controller.bin && \
+	asroot install -o root -g root -m 644 $FIRMWARE_DIR/out/mod-dwarf-controller.dbg $BASE_SYSTEM_DIR/usr/share/mod/controller/mod-dwarf-controller.dbg && \
+	printf '%s\n' "${CONTROLLER_GIT_HASH}" | asroot install -o root -g root -m 644 /dev/stdin $BASE_SYSTEM_DIR/usr/share/mod/controller/version
 
 	if [ ! $? -eq 0 ]; then
 		echo 'Cannot copy mod warf controller firmware'
@@ -228,32 +342,24 @@ EOL
 	echo 'Creating versions file'
 	# controller firmware
 	CONTROLLER_DATE=`date '+%Y %b %d %H:%M:%S'`
-	sudo chmod o+w $BASE_SYSTEM_DIR/etc/mod-release/controller 
-	cat > $BASE_SYSTEM_DIR/etc/mod-release/controller <<EOL
+	asroot install -o root -g root -m 644 /dev/stdin $BASE_SYSTEM_DIR/etc/mod-release/controller <<EOL
 generated=${CONTROLLER_DATE} at ${HOSTNAME}
 revision=${CONTROLLER_GIT_HASH}
 EOL
-
-	sudo chmod o-w $BASE_SYSTEM_DIR/etc/mod-release/controller 
 fi
 
 # os release
-sudo chmod o+w $BASE_SYSTEM_DIR/etc/mod-release/release
-cat > $BASE_SYSTEM_DIR/etc/mod-release/release<<EOL
+asroot install -o root -g root -m 644 /dev/stdin $BASE_SYSTEM_DIR/etc/mod-release/release <<EOL
 ${VER_IMAGE}-${VERSION}
 EOL
-sudo chmod o-w $BASE_SYSTEM_DIR/etc/mod-release/release
 
 # os system
 SYSTEM_DATE=`date '+%Y %b %d %H:%M:%S'`
-sudo chmod o+w $BASE_SYSTEM_DIR/etc/mod-release/system
-cat > $BASE_SYSTEM_DIR/etc/mod-release/system<<EOL
+asroot install -o root -g root -m 644 /dev/stdin $BASE_SYSTEM_DIR/etc/mod-release/system <<EOL
 generated=${SYSTEM_DATE} at ${HOSTNAME}
 revision=${STARLESS_GIT_HASH}
 EOL
-sudo chmod o-w $BASE_SYSTEM_DIR/etc/mod-release/system
 
-sudo chmod o+w $IMAGE_NAME/VERSIONS
 if [ $PLATFORM = "moddwarf-new" ]; then
 	cat > $IMAGE_NAME/VERSIONS  <<EOL
 version=${VER_BASE}
@@ -294,10 +400,9 @@ else
 	exit 1
 fi
 
-sudo chmod o-w $IMAGE_NAME/VERSIONS
 
 echo 'Repacking system distribution' 
-sudo tar cpfJ $IMAGE_NAME/system.tar.xz -C $BASE_SYSTEM_DIR .
+asroot tar cpfJ $IMAGE_NAME/system.tar.xz -C $BASE_SYSTEM_DIR .
 
 echo 'Calculating checksum'
 rm -f $IMAGE_NAME/SHA1SUMS
@@ -320,7 +425,9 @@ sha1sum $IMAGE_NAME/system.tar.xz | sed "s/${IMAGE_NAME}\///" >> $IMAGE_NAME/SHA
 sha1sum $IMAGE_NAME/VERSIONS | sed "s/${IMAGE_NAME}\///" >> $IMAGE_NAME/SHA1SUMS
 
 echo 'Cleanup image folder'
-sudo rm -rf $IMAGE_NAME/tmp
+# the files are the user's; some system directories are read only (e.g. 555)
+chmod -R u+w $IMAGE_NAME/tmp
+rm -rf $IMAGE_NAME/tmp
 
 echo 'Packing image file'
 rm -f $IMAGE_NAME.tar
@@ -328,7 +435,7 @@ tar cf $IMAGE_NAME.tar -C $IMAGE_NAME .
 sha1sum $IMAGE_NAME.tar > $IMAGE_NAME.tar.sha1
 
 echo 'Cleanup'
-sudo rm -rf $IMAGE_NAME
+rm -rf $IMAGE_NAME
 
 echo 'DONE!'
 

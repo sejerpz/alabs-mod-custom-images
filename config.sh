@@ -16,10 +16,28 @@ if [ -f /.dockerenv ]; then
 DOCKER_IMAGE='(inside docker container)'
 DOCKER_NAME='-'
 else
-DOCKER_IMAGE=$PLATFORM:latest
+# ALABS_DOCKER_IMAGE: another build image for a single build (e.g. one with more libraries)
+DOCKER_IMAGE=${ALABS_DOCKER_IMAGE:-$PLATFORM:latest}
 DOCKER_NAME=$PLATFORM-$(uuidgen)
 fi
 DOCKER_SRC_ROOT=/root/source
+
+# alabs-mod-wifi binary release (driver, firmware, wifi-ap): the image gets the
+# archive alabs-mod-wifi-<version>-<platform>.tar.gz of the GitHub release
+# v<version>, and only if it has the sha256 below (see "Binary release" in the
+# alabs-mod-wifi README). Empty sha256: no release for that platform, the image
+# is built without WiFi access point.
+ALABS_MOD_WIFI_VERSION=0.1.0
+declare -A ALABS_MOD_WIFI_SHA256=(
+	[moddwarf]=3bc83aecf585411aab1dd3728dd9a4596b5a11eb5dfbc2fbe49765b3d04d98cf
+	[modduox]=
+	[modduo]=
+)
+
+# "Report a problem" of the web interface: the forum topic its link opens.
+# Written in the image as MOD_FEEDBACK_URL of mod-ui (a systemd drop-in); empty:
+# mod-ui keeps its default, the Beta Testing category of the MOD forum
+ALABS_FEEDBACK_URL=https://forum.mod.audio/t/starless-by-alabs-development/12853
 
 echo 'Configuration:'
 # tag is a special command
