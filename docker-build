@@ -9,7 +9,11 @@ echo "starting docker container build enviroment for platform $PLATFORM mapping 
 docker run --name "$DOCKER_NAME" -dt -v $ALABS_ROOT:$DOCKER_SRC_ROOT $DOCKER_IMAGE
 
 docker exec -t "$DOCKER_NAME" "$DOCKER_SRC_ROOT/build-mod-binaries" $1
+# the result of the build, not of the cleanup below
+BUILD_STATUS=$?
 
 echo "stopping docker container build enviroment"
 docker stop "$DOCKER_NAME"
 docker rm "$DOCKER_NAME"
+
+exit $BUILD_STATUS
