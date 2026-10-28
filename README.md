@@ -44,28 +44,24 @@ If you decide not to use this firmware image anymore:
 
 # Versioning
 
-Alabs custom images, _from version 2_, adopted a simple monotone version convention.
+The images adopt a simple monotone version convention: each release is tagged with a progressive version number.
 
-Each release is tagged with a progressive version number and an optional letter for quality:
-
-`v{base mod image version}-alabs{version number}[optional letter quality]`
+`v{base mod image version}-stls{version number}`
 
 For example:
 
-`v1.13.5.3315-alabs2a`
-
-base image version: **1.13.5.3315**
-alabs version: **2**
-_quality_: **a: alpha**
-
-`v1.13.5.3315-alabs3b`
+`v1.13.5.3315-stls17`
 
 base mod image version: **1.13.5.3315**
-alabs version: **3**
-_quality_: **b: beta**
+stls version: **17**
 
-`v1.13.5.3315-alabs4`
+# Building the image
 
-base mod image version: **1.13.5.3315**
-alabs version: **4**
-_quality_: **none: stable release**
+The image is made by `create-image` from an official MOD image: it builds mod-ui,
+mod-host and the HMI firmware from the submodules, puts them in the system of the
+official image together with the aLabs components (diagnostics, WiFi access point)
+and packs a new image.
+
+Requirements, build environment and usage are described in the
+[Build a custom image](https://github.com/sejerpz/alabs-mod-custom-images/wiki/Build-a-custom-image)
+page of the wiki.
