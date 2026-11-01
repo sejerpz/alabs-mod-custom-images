@@ -309,6 +309,13 @@ if [ $PLATFORM = "moddwarf-new" ]; then
 	asroot install -o root -g root -m 755 -t $DIAG_DIR/providers.d $DIAG_SRC/providers.d/*
 fi
 
+# hardware descriptor drop-ins, merged by mod-ui over the descriptor MOD ships
+if [ -d $ALABS_ROOT/hardware-descriptor.d/$PLATFORM ]; then
+	echo 'Copying hardware descriptor drop-ins'
+	asroot install -d -o root -g root -m 755 $BASE_SYSTEM_DIR/etc/mod-hardware-descriptor.d
+	asroot install -o root -g root -m 644 -t $BASE_SYSTEM_DIR/etc/mod-hardware-descriptor.d $ALABS_ROOT/hardware-descriptor.d/$PLATFORM/*.json
+fi
+
 if [ -n "$ALABS_FEEDBACK_URL" ]; then
 	echo 'Setting the report a problem link: ' $ALABS_FEEDBACK_URL
 	# drop-in of the mod-ui unit, the unit itself is left as MOD ships it;

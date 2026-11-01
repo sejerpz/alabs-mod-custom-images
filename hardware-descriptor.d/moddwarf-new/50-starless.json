@@ -1,0 +1,9 @@
+{
+    "hmi_widget_columns": [
+        [2, 12, 40, 37],
+        [44, 12, 40, 37],
+        [86, 12, 40, 37]
+    ],
+    "hmi_widget_fullscreen": [0, 0, 128, 64],
+    "hmi_widget_pixel_format": "mono1"
+}
