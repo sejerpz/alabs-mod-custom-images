@@ -60,6 +60,7 @@ if [ "$1" = "tag" ]
 	git -C $ALABS_ROOT/mod-dwarf-controller tag -a $TAG_NAME -m "aLabs release $TAG_VERSION"
 	git -C $ALABS_ROOT/mod-ui tag -a $TAG_NAME -m "aLabs release $TAG_VERSION"
 	git -C $ALABS_ROOT/mod-host tag -a $TAG_NAME -m "aLabs release $TAG_VERSION"
+	git -C $ALABS_ROOT/mod-system-control tag -a $TAG_NAME -m "aLabs release $TAG_VERSION"
 	git -C $ALABS_ROOT/alabs-mod-diagnostics-logs tag -a $TAG_NAME -m "aLabs release $TAG_VERSION"
 	git tag -a $TAG_NAME -m "aLabs release $TAG_VERSION"
 	exit $?
@@ -112,6 +113,7 @@ if [[ "$2" == "update" || "$2" == "release" ]]
 	git add $ALABS_ROOT/mod-dwarf-controller
 	git add $ALABS_ROOT/mod-ui
 	git add $ALABS_ROOT/mod-host
+	git add $ALABS_ROOT/mod-system-control
 	git add $ALABS_ROOT/alabs-mod-diagnostics-logs
 
 	echo 'Update dependencies'
@@ -190,6 +192,19 @@ STARLESS_GIT_HASH=`git -C $ALABS_ROOT rev-parse HEAD`
 
 echo 'passed'
 cd $ALABS_ROOT
+
+# the build environment has no libsystemd: mod-system-control links the one of the
+# base image, with libcap it needs (headers in third-party/systemd)
+echo 'Extracting libsystemd of the base image'
+SYSTEMD_LIB_DIR=$ALABS_ROOT/deps/libsystemd-$PLATFORM/lib
+rm -rf $SYSTEMD_LIB_DIR
+mkdir -p $SYSTEMD_LIB_DIR
+tar -xOf $TAR_BASE_IMAGE ./system.tar.xz | \
+	tar -xJf - -C $SYSTEMD_LIB_DIR --strip-components=3 --wildcards './usr/lib/libsystemd.so*' './usr/lib/libcap.so*'
+if [ ! $? -eq 0 ]; then
+	echo 'Fail to extract libsystemd from the base image'
+	exit 1
+fi
 
 echo 'Building mod binaries using docker build enviroment'
 bash docker-build $PLATFORM
@@ -288,6 +303,9 @@ asroot cp -r --preserve=mode,timestamps $ALABS_ROOT/mod-host/mod-host $BASE_SYST
 asroot cp -r --preserve=mode,timestamps $ALABS_ROOT/mod-host/mod-host.so $BASE_SYSTEM_DIR/usr/lib/jack/
 asroot cp -r --preserve=mode,timestamps $ALABS_ROOT/mod-host/fake-input.so $BASE_SYSTEM_DIR/usr/lib/jack/
 asroot cp -r --preserve=mode,timestamps $ALABS_ROOT/mod-host/mod-monitor.so $BASE_SYSTEM_DIR/usr/lib/jack/
+
+echo 'Copying new files: mod-system-control'
+asroot cp --preserve=mode,timestamps $ALABS_ROOT/mod-system-control/mod-system-control $BASE_SYSTEM_DIR/usr/bin
 
 if [ -n "$ALABS_MOD_WIFI_SUM" ]; then
 	echo 'Copying new files: alabs-mod-wifi' $ALABS_MOD_WIFI_VERSION

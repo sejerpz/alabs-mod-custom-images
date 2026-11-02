@@ -14,3 +14,7 @@
 	path = alabs-mod-diagnostics-logs
 	url = git@github.com:sejerpz/alabs-mod-diagnostics-logs.git
 	branch = main
+[submodule "mod-system-control"]
+	path = mod-system-control
+	url = git@github.com:sejerpz/mod-system-control.git
+	branch = feature/hmi-widgets

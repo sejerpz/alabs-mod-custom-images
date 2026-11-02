@@ -58,7 +58,7 @@ stls version: **17**
 # Building the image
 
 The image is made by `create-image` from an official MOD image: it builds mod-ui,
-mod-host and the HMI firmware from the submodules, puts them in the system of the
+mod-host, mod-system-control and the HMI firmware from the submodules, puts them in the system of the
 official image together with the aLabs components (diagnostics, WiFi access point)
 and packs a new image.
 

@@ -55,5 +55,19 @@ make -C mod-ui/utils
 echo "Building mod-host"
 # build mod-host
 make -C mod-host clean
-make -C mod-host
+make -C mod-host || { echo "Failed to build mod-host"; exit 1; }
+
+# build mod-system-control
+echo "Building mod-system-control"
+# against the libsystemd create-image takes from the base image, so it notifies systemd
+# (Type=notify) as the official build does; the build environment has none
+#  - flags by hand, not a .pc: the pkg-config of the build environment prefixes every
+#    -I and -L with its sysroot
+#  - -lsystemd last, after the objects, or --as-needed drops it
+SYSTEMD_LIB_DIR=$DOCKER_SRC_ROOT/deps/libsystemd-$PLATFORM/lib
+make -C mod-system-control clean
+make -C mod-system-control \
+	CFLAGS="$CFLAGS -DHAVE_SYSTEMD -I$DOCKER_SRC_ROOT/third-party/systemd/include" \
+	LINK_FLAGS_SD="-L$SYSTEMD_LIB_DIR -Wl,-rpath-link,$SYSTEMD_LIB_DIR -lsystemd" \
+	|| { echo "Failed to build mod-system-control"; exit 1; }
 
