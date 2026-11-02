@@ -106,7 +106,9 @@ echo ' '
 if [[ "$2" == "update" || "$2" == "release" ]]
   then
 	echo "Update GIT submodules"
-	git submodule update --init --remote --recursive
+	# only ours follow their branch: nested ones stay on the commit their repository records
+	git submodule update --init --remote
+	git submodule foreach -q 'git submodule update --init --recursive'
 	git add $ALABS_ROOT/mod-dwarf-controller
 	git add $ALABS_ROOT/mod-ui
 	git add $ALABS_ROOT/mod-host
