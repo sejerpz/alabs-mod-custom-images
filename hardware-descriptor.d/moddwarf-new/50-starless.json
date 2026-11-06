@@ -1,9 +1,17 @@
 {
-    "hmi_widget_columns": [
-        [2, 12, 40, 37],
-        [44, 12, 40, 37],
-        [86, 12, 40, 37]
+    "hmi_widget_areas": [
+        { "id": "col1",    "name": "Column 1",    "rect": [2, 12, 40, 37],   "cells": ["col1"] },
+        { "id": "col2",    "name": "Column 2",    "rect": [44, 12, 40, 37],  "cells": ["col2"] },
+        { "id": "col3",    "name": "Column 3",    "rect": [86, 12, 40, 37],  "cells": ["col3"] },
+        { "id": "col1-2",  "name": "Columns 1–2", "rect": [2, 12, 82, 37],   "cells": ["col1", "col2"] },
+        { "id": "col2-3",  "name": "Columns 2–3", "rect": [44, 12, 82, 37],  "cells": ["col2", "col3"] },
+        { "id": "col1-3",  "name": "Columns 1–3", "rect": [2, 12, 124, 37],  "cells": ["col1", "col2", "col3"] },
+        { "id": "footB",   "name": "Footer B",    "rect": [24, 54, 53, 10],  "cells": ["footB"], "subpages": false },
+        { "id": "footC",   "name": "Footer C",    "rect": [77, 54, 51, 10],  "cells": ["footC"], "subpages": false },
+        { "id": "footB-C", "name": "Footers B–C", "rect": [24, 54, 104, 10], "cells": ["footB", "footC"],
+          "subpages": false },
+        { "id": "full",    "name": "Full screen", "rect": [0, 0, 128, 64],
+          "cells": ["title", "col1", "col2", "col3", "index", "footB", "footC"] }
     ],
-    "hmi_widget_fullscreen": [0, 0, 128, 64],
     "hmi_widget_pixel_format": "mono1"
 }
