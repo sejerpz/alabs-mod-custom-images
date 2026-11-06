@@ -65,3 +65,10 @@ and packs a new image.
 Requirements, build environment and usage are described in the
 [Build a custom image](https://github.com/sejerpz/alabs-mod-custom-images/wiki/Build-a-custom-image)
 page of the wiki.
+
+# Use of AI
+
+Parts of this project, code and documentation, may be written with the help of AI tools,
+mainly Claude by Anthropic. Every change is read and reviewed by a human developer before it
+is committed, and the maintainer is responsible for it like for any other code. AI tools are
+not credited as authors in the commit history.
