@@ -311,12 +311,19 @@ if [ -n "$ALABS_MOD_WIFI_SUM" ]; then
 	echo 'Copying new files: alabs-mod-wifi' $ALABS_MOD_WIFI_VERSION
 	# overlay of the root filesystem; existing directories keep their attributes
 	asroot tar -xpf $ALABS_MOD_WIFI_FILE -C $BASE_SYSTEM_DIR --no-overwrite-dir
-	# kernel version the module was built for, from the archive
-	ALABS_MOD_WIFI_KVER=$(tar -tzf $ALABS_MOD_WIFI_FILE | sed -n 's|^\./usr/lib/modules/\([^/]*\)/$|\1|p' | head -1)
-	if [ -z "$ALABS_MOD_WIFI_KVER" ] || ! asroot /usr/sbin/depmod -b $BASE_SYSTEM_DIR $ALABS_MOD_WIFI_KVER; then
+	# kernel versions the module was built for, from the archive (the Duo X image
+	# has two kernels, one per board)
+	ALABS_MOD_WIFI_KVERS=$(tar -tzf $ALABS_MOD_WIFI_FILE | sed -n 's|^\./usr/lib/modules/\([^/]*\)/$|\1|p')
+	if [ -z "$ALABS_MOD_WIFI_KVERS" ]; then
 		echo 'Fail to install alabs-mod-wifi'
 		exit 1
 	fi
+	for ALABS_MOD_WIFI_KVER in $ALABS_MOD_WIFI_KVERS; do
+		if ! asroot /usr/sbin/depmod -b $BASE_SYSTEM_DIR $ALABS_MOD_WIFI_KVER; then
+			echo 'Fail to install alabs-mod-wifi'
+			exit 1
+		fi
+	done
 fi
 
 if [ $PLATFORM = "moddwarf-new" ]; then
