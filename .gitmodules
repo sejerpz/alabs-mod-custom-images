@@ -1,15 +1,15 @@
 [submodule "mod-ui"]
 	path = mod-ui
 	url = git@github.com:sejerpz/mod-ui.git
-	branch = feature/hmi-widgets
+	branch = devel
 [submodule "mod-dwarf-controller"]
 	path = mod-dwarf-controller
 	url = git@github.com:sejerpz/mod-dwarf-controller
-	branch = feature/hmi-widgets
+	branch = devel
 [submodule "mod-host"]
 	path = mod-host
 	url = git@github.com:sejerpz/mod-host.git
-	branch = feature/hmi-widgets
+	branch = devel
 [submodule "alabs-mod-diagnostics-logs"]
 	path = alabs-mod-diagnostics-logs
 	url = git@github.com:sejerpz/alabs-mod-diagnostics-logs.git
@@ -17,4 +17,4 @@
 [submodule "mod-system-control"]
 	path = mod-system-control
 	url = git@github.com:sejerpz/mod-system-control.git
-	branch = feature/hmi-widgets
+	branch = devel
