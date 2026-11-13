@@ -57,3 +57,28 @@ echo "Building mod-host"
 make -C mod-host clean
 make -C mod-host
 
+# build the libcrypto of the Duo (see config.sh), downloaded by create-image
+#  - the Configure of the buildroot 2016.02 of the image (package/openssl), plus -marm:
+#    the ARM assembly of OpenSSL 1.0.2 is wrong when built as Thumb-2, the default of the toolchain
+#  - serial make: OpenSSL 1.0.2 does not build in parallel without the patches of buildroot
+#  - no "make depend": the environment has no makedepend, and the tree is always a fresh one
+#  - the ABI does not change, the image keeps its libssl
+if [ $PLATFORM = "modduo-new" ] && [ -n "$ALABS_OPENSSL_SHA256" ]; then
+	echo "Building libcrypto of OpenSSL $ALABS_OPENSSL_VERSION"
+	OPENSSL_OUT=$DOCKER_SRC_ROOT/deps/openssl-$PLATFORM
+	OPENSSL_BUILD=$(mktemp -d)
+	rm -rf $OPENSSL_OUT
+	tar -xzf $DOCKER_SRC_ROOT/deps/openssl-$ALABS_OPENSSL_VERSION.tar.gz -C $OPENSSL_BUILD \
+		|| { echo "Failed to extract OpenSSL"; exit 1; }
+	(cd $OPENSSL_BUILD/openssl-$ALABS_OPENSSL_VERSION && \
+		CC=$CC ./Configure linux-armv4 --prefix=/usr --openssldir=/etc/ssl \
+			threads shared no-rc5 enable-camellia enable-mdc2 enable-tlsext zlib-dynamic \
+			-D_LARGEFILE_SOURCE -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64 -O3 -marm && \
+		make CC=$CC AR="${BR2_TOOLCHAIN_EXTERNAL_CUSTOM_PREFIX}-ar r" RANLIB=$RANLIB build_libs && \
+		$STRIP --strip-unneeded libcrypto.so.1.0.0) > $OPENSSL_BUILD/build.log 2>&1 \
+		|| { tail -20 $OPENSSL_BUILD/build.log; echo "Failed to build OpenSSL"; exit 1; }
+	mkdir -p $OPENSSL_OUT
+	cp $OPENSSL_BUILD/openssl-$ALABS_OPENSSL_VERSION/libcrypto.so.1.0.0 $OPENSSL_OUT/
+	rm -rf $OPENSSL_BUILD
+fi
+

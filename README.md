@@ -60,7 +60,9 @@ stls version: **17**
 The image is made by `create-image` from an official MOD image: it builds mod-ui,
 mod-host and the HMI firmware from the submodules, puts them in the system of the
 official image together with the aLabs components (diagnostics, WiFi access point)
-and packs a new image.
+and packs a new image. On the Duo it also replaces the libcrypto of the image with
+the same OpenSSL release built with `-marm`: the one of MOD has its ARM assembly
+built as Thumb-2 and computes AES and SHA-256 wrong (WPA2, HTTPS certificates).
 
 Requirements, build environment and usage are described in the
 [Build a custom image](https://github.com/sejerpz/alabs-mod-custom-images/wiki/Build-a-custom-image)

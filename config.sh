@@ -34,6 +34,13 @@ declare -A ALABS_MOD_WIFI_SHA256=(
 	[modduo]=ddf79cf22ccf4d3d61471f4921003d4953f5ed8ec19d09afc175c6f1e4f099d5
 )
 
+# OpenSSL of the Duo image: its libcrypto has the ARM assembly built as Thumb-2,
+# and AES and SHA-256 come out wrong (WPA2 handshake, HTTPS certificates).
+# build-mod-binaries builds the same release with -marm and the image gets its
+# libcrypto. Empty sha256: the image keeps the libcrypto of MOD.
+ALABS_OPENSSL_VERSION=1.0.2g
+ALABS_OPENSSL_SHA256=b784b1b3907ce39abf4098702dade6365522a253ad1552e267a9a0e89594aa33
+
 # "Report a problem" of the web interface: the forum topic its link opens.
 # Written in the image as MOD_FEEDBACK_URL of mod-ui (a systemd drop-in); empty:
 # mod-ui keeps its default, the Beta Testing category of the MOD forum

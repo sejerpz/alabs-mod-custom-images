@@ -98,6 +98,16 @@ if [ -n "$ALABS_MOD_WIFI_SUM" ]; then
 else
 	echo '    alabs-mod-wifi...:  not released for' $FIRMWARE_TARGET', image without WiFi access point'
 fi
+# libcrypto of the Duo rebuilt with -marm (see config.sh), sources kept in deps/
+ALABS_OPENSSL=
+ALABS_OPENSSL_ARCHIVE=openssl-$ALABS_OPENSSL_VERSION.tar.gz
+ALABS_OPENSSL_URL=https://www.openssl.org/source/old/${ALABS_OPENSSL_VERSION%[a-z]}/$ALABS_OPENSSL_ARCHIVE
+ALABS_OPENSSL_FILE=$ALABS_ROOT/deps/$ALABS_OPENSSL_ARCHIVE
+ALABS_OPENSSL_LIB=$ALABS_ROOT/deps/openssl-$PLATFORM/libcrypto.so.1.0.0
+if [ $PLATFORM = "modduo-new" ] && [ -n "$ALABS_OPENSSL_SHA256" ]; then
+	ALABS_OPENSSL=yes
+	echo '    libcrypto........:  OpenSSL' $ALABS_OPENSSL_VERSION 'built with -marm'
+fi
 echo '    report a problem.: ' ${ALABS_FEEDBACK_URL:-mod-ui default}
 echo ' '
 read -p 'Press ENTER key to start' PROCEED
@@ -160,6 +170,23 @@ if [ -n "$ALABS_MOD_WIFI_SUM" ]; then
 	fi
 	if ! echo "$ALABS_MOD_WIFI_SUM  $ALABS_MOD_WIFI_FILE" | sha256sum -c --quiet; then
 		echo '    [ERR] wrong sha256 for ' $ALABS_MOD_WIFI_FILE ', remove it to download it again'
+		exit 1
+	fi
+fi
+
+# OpenSSL sources for the libcrypto of the Duo, built by build-mod-binaries
+if [ -n "$ALABS_OPENSSL" ]; then
+	if [ ! -f $ALABS_OPENSSL_FILE ]; then
+		mkdir -p $ALABS_ROOT/deps
+		curl -fL -o $ALABS_OPENSSL_FILE.part $ALABS_OPENSSL_URL && mv $ALABS_OPENSSL_FILE.part $ALABS_OPENSSL_FILE
+		if [ ! $? -eq 0 ]; then
+			rm -f $ALABS_OPENSSL_FILE.part
+			echo '    [ERR] cannot download ' $ALABS_OPENSSL_URL
+			exit 1
+		fi
+	fi
+	if ! echo "$ALABS_OPENSSL_SHA256  $ALABS_OPENSSL_FILE" | sha256sum -c --quiet; then
+		echo '    [ERR] wrong sha256 for ' $ALABS_OPENSSL_FILE ', remove it to download it again'
 		exit 1
 	fi
 fi
@@ -304,6 +331,15 @@ if [ -n "$ALABS_MOD_WIFI_SUM" ]; then
 			exit 1
 		fi
 	done
+fi
+
+if [ -n "$ALABS_OPENSSL" ]; then
+	echo 'Copying new files: libcrypto of OpenSSL' $ALABS_OPENSSL_VERSION
+	if [ ! -f $ALABS_OPENSSL_LIB ] || \
+	   ! asroot install -o root -g root -m 755 $ALABS_OPENSSL_LIB $BASE_SYSTEM_DIR/usr/lib/libcrypto.so.1.0.0; then
+		echo 'Fail to install libcrypto'
+		exit 1
+	fi
 fi
 
 if [ $PLATFORM = "moddwarf-new" ]; then
