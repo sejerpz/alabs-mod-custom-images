@@ -459,6 +459,10 @@ elif [ $PLATFORM = "modduo-new" ]; then
 	# standard duo firmaware
 	sha1sum $IMAGE_NAME/mod-controller.bin | sed "s/$IMAGE_NAME\///" >> $IMAGE_NAME/SHA1SUMS
 	sha1sum $IMAGE_NAME/restore-mainline.tar.xz | sed "s/${IMAGE_NAME}\///" >> $IMAGE_NAME/SHA1SUMS
+	# bootloader, in the base image since v1.14: the restore checks it too ("invalid file")
+	if [ -f $IMAGE_NAME/u-boot-aw-a20-spl.bin ]; then
+		sha1sum $IMAGE_NAME/u-boot-aw-a20-spl.bin | sed "s/${IMAGE_NAME}\///" >> $IMAGE_NAME/SHA1SUMS
+	fi
 else
 	echo 'No firmware checksum generated for this unsupported platform: ' $PLATFORM
 	exit 1
