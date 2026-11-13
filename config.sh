@@ -27,11 +27,11 @@ DOCKER_SRC_ROOT=/root/source
 # v<version>, and only if it has the sha256 below (see "Binary release" in the
 # alabs-mod-wifi README). Empty sha256: no release for that platform, the image
 # is built without WiFi access point.
-ALABS_MOD_WIFI_VERSION=0.1.0
+ALABS_MOD_WIFI_VERSION=0.2.0
 declare -A ALABS_MOD_WIFI_SHA256=(
-	[moddwarf]=3bc83aecf585411aab1dd3728dd9a4596b5a11eb5dfbc2fbe49765b3d04d98cf
-	[modduox]=
-	[modduo]=
+	[moddwarf]=399c1a113fd83f17840e2c71515a8bd78d0e4e4fc4b38ea57f491659fdd2f386
+	[modduox]=931ad0c8a62b49b9789ba2ee10d97099e4b5c55ef67a7f5b28f1265bec93569c
+	[modduo]=ddf79cf22ccf4d3d61471f4921003d4953f5ed8ec19d09afc175c6f1e4f099d5
 )
 
 # "Report a problem" of the web interface: the forum topic its link opens.
