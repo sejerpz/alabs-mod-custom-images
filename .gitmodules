@@ -18,3 +18,7 @@
 	path = mod-system-control
 	url = git@github.com:sejerpz/mod-system-control.git
 	branch = devel
+[submodule "mod-duox-controller"]
+	path = mod-duox-controller
+	url = git@github.com:sejerpz/mod-duox-controller.git
+	branch = devel

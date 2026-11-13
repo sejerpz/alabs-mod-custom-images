@@ -121,6 +121,7 @@ if [[ "$2" == "update" || "$2" == "release" ]]
 	git submodule update --init --remote
 	git submodule foreach -q 'git submodule update --init --recursive'
 	git add $ALABS_ROOT/mod-dwarf-controller
+	git add $ALABS_ROOT/mod-duox-controller
 	git add $ALABS_ROOT/mod-ui
 	git add $ALABS_ROOT/mod-host
 	git add $ALABS_ROOT/mod-system-control
@@ -152,6 +153,12 @@ fi
 # the system files are handled with fakeroot, no root password needed
 if ! command -v fakeroot > /dev/null; then
 	echo '    [ERR] fakeroot not found, install it (e.g. apt install fakeroot)'
+	exit 1
+fi
+
+# Duo X controller firmware (submodule)
+if [ $PLATFORM = "modduox-new" ] && [ ! -f $ALABS_ROOT/mod-duox-controller/Makefile ]; then
+	echo '    [ERR] mod-duox-controller not found, run: create-image modduox-new update'
 	exit 1
 fi
 
@@ -395,17 +402,29 @@ fi
 
 echo 'Update mod-os release'
 
+# the controller firmware built above, in the image and in its system (hmi-update-auto
+# flashes the one of /usr/share/mod/controller). The Duo X has two boards: the RK3399
+# one flashes mod-duox-controller.bin; the i.MX8MQ one (mod-duox-le-controller.bin)
+# has no system line, so no HMI widgets, and keeps the firmware of the base image
 if [ $PLATFORM = "moddwarf-new" ]; then
+	CONTROLLER_NAME=mod-dwarf-controller
+elif [ $PLATFORM = "modduox-new" ]; then
+	CONTROLLER_NAME=mod-duox-controller
+else
+	CONTROLLER_NAME=
+fi
+
+if [ -n "$CONTROLLER_NAME" ]; then
 	echo 'Adding firmware'
-	cp -ar $FIRMWARE_DIR/out/mod-dwarf-controller.bin $IMAGE_NAME/
+	cp -ar $FIRMWARE_DIR/out/$CONTROLLER_NAME.bin $IMAGE_NAME/
 
 	# copy firmware and debug symbols in the new image
-	asroot install -o root -g root -m 644 $FIRMWARE_DIR/out/mod-dwarf-controller.bin $BASE_SYSTEM_DIR/usr/share/mod/controller/mod-dwarf-controller.bin && \
-	asroot install -o root -g root -m 644 $FIRMWARE_DIR/out/mod-dwarf-controller.dbg $BASE_SYSTEM_DIR/usr/share/mod/controller/mod-dwarf-controller.dbg && \
+	asroot install -o root -g root -m 644 $FIRMWARE_DIR/out/$CONTROLLER_NAME.bin $BASE_SYSTEM_DIR/usr/share/mod/controller/$CONTROLLER_NAME.bin && \
+	asroot install -o root -g root -m 644 $FIRMWARE_DIR/out/$CONTROLLER_NAME.dbg $BASE_SYSTEM_DIR/usr/share/mod/controller/$CONTROLLER_NAME.dbg && \
 	printf '%s\n' "${CONTROLLER_GIT_HASH}" | asroot install -o root -g root -m 644 /dev/stdin $BASE_SYSTEM_DIR/usr/share/mod/controller/version
 
 	if [ ! $? -eq 0 ]; then
-		echo 'Cannot copy mod warf controller firmware'
+		echo 'Cannot copy controller firmware ' $CONTROLLER_NAME
 		exit 1
 	fi
 
@@ -430,13 +449,20 @@ generated=${SYSTEM_DATE} at ${HOSTNAME}
 revision=${STARLESS_GIT_HASH}
 EOL
 
+# the restore partition is the one of the base image, as its revision
+RESTORE_REVISION=`tar -xOf $TAR_BASE_IMAGE ./VERSIONS | sed -n 's/^restore=//p'`
+if [ -z "$RESTORE_REVISION" ]; then
+	echo 'No restore revision in the VERSIONS of the base image'
+	exit 1
+fi
+
 if [ $PLATFORM = "moddwarf-new" ]; then
 	cat > $IMAGE_NAME/VERSIONS  <<EOL
 version=${VER_BASE}
 build=${VER_BASE_BUILD}-${VERSION}
 version.build=${VER_IMAGE}-${VERSION}
 label=
-restore=48de0f238fdb1ff138a734a1272c
+restore=${RESTORE_REVISION}
 system=${STARLESS_GIT_HASH}
 controller=${CONTROLLER_GIT_HASH}
 platform=moddwarf
@@ -447,7 +473,7 @@ version=${VER_BASE}
 build=${VER_BASE_BUILD}-${VERSION}
 version.build=${VER_IMAGE}-${VERSION}
 label=
-restore=48de0f238fdb1ff138a734a1272c
+restore=${RESTORE_REVISION}
 system=${STARLESS_GIT_HASH}
 controller=${CONTROLLER_GIT_HASH}
 platform=modduox
@@ -459,7 +485,7 @@ version=${VER_BASE}
 build=${VER_BASE_BUILD}-${VERSION}
 version.build=${VER_IMAGE}-${VERSION}
 label=
-restore=48de0f238fdb1ff138a734a1272c
+restore=${RESTORE_REVISION}
 system=${STARLESS_GIT_HASH}
 controller=${CONTROLLER_GIT_HASH}
 platform=modduo
@@ -493,6 +519,10 @@ elif [ $PLATFORM = "modduo-new" ]; then
 else
 	echo 'No firmware checksum generated for this unsupported platform: ' $PLATFORM
 	exit 1
+fi
+# u-boot of the i.MX8MQ Duo X, in the images that have it
+if [ -f $IMAGE_NAME/u-boot-cl-imx8mq.bin ]; then
+	sha1sum $IMAGE_NAME/u-boot-cl-imx8mq.bin | sed "s/$IMAGE_NAME\///" >> $IMAGE_NAME/SHA1SUMS
 fi
 sha1sum $IMAGE_NAME/restore.tar.xz | sed "s/${IMAGE_NAME}\///" >> $IMAGE_NAME/SHA1SUMS
 sha1sum $IMAGE_NAME/system.tar.xz | sed "s/${IMAGE_NAME}\///" >> $IMAGE_NAME/SHA1SUMS
