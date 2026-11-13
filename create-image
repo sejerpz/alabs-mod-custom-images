@@ -405,11 +405,14 @@ echo 'Update mod-os release'
 # the controller firmware built above, in the image and in its system (hmi-update-auto
 # flashes the one of /usr/share/mod/controller). The Duo X has two boards: the RK3399
 # one flashes mod-duox-controller.bin; the i.MX8MQ one (mod-duox-le-controller.bin)
-# has no system line, so no HMI widgets, and keeps the firmware of the base image
+# has no system line, so no HMI widgets, and keeps the firmware of the base image.
+# The firmware of the Duo is mod-controller.bin
 if [ $PLATFORM = "moddwarf-new" ]; then
 	CONTROLLER_NAME=mod-dwarf-controller
 elif [ $PLATFORM = "modduox-new" ]; then
 	CONTROLLER_NAME=mod-duox-controller
+elif [ $PLATFORM = "modduo-new" ]; then
+	CONTROLLER_NAME=mod-controller
 else
 	CONTROLLER_NAME=
 fi
