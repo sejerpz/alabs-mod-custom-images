@@ -60,6 +60,7 @@ if [ "$1" = "tag" ]
   then
 	echo "TAGGING GIT REPOSITORIES"
 	git -C $ALABS_ROOT/mod-dwarf-controller tag -a $TAG_NAME -m "aLabs release $TAG_VERSION"
+	git -C $ALABS_ROOT/mod-duox-controller tag -a $TAG_NAME -m "aLabs release $TAG_VERSION"
 	git -C $ALABS_ROOT/mod-ui tag -a $TAG_NAME -m "aLabs release $TAG_VERSION"
 	git -C $ALABS_ROOT/mod-host tag -a $TAG_NAME -m "aLabs release $TAG_VERSION"
 	git -C $ALABS_ROOT/mod-system-control tag -a $TAG_NAME -m "aLabs release $TAG_VERSION"
