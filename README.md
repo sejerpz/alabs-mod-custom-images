@@ -1,6 +1,8 @@
-# About this MOD Dwarf Custom Image
+# About these MOD Custom Images (Starless)
 
-I appreciate the MOD Dwarf for its versatility and endless configurability.  
+Starless images are available for the **MOD Dwarf**, the **MOD Duo X** and the **MOD Duo**.
+
+I appreciate the MOD devices for their versatility and endless configurability.  
 However, some features are still missing.  
 
 Thanks to MOD Audio, most of the software stack is open source.  
@@ -14,7 +16,9 @@ This custom image introduces the following enhancements:
 - **New performance view**  
 - **Plugin labeling**  
 - **Extended control** over which parameters are included in snapshots  
-- **On-device editing** of pedalboard parameters directly from the Dwarf
+- **On-device editing** of pedalboard parameters directly from the Dwarf and the Duo X
+- **Display widgets**: plugins draw on the display of the Dwarf and the Duo X
+- **WiFi access point** with a USB WiFi dongle, on all three devices
 
   and many other, read the wiki for the complete list
 
@@ -22,18 +26,18 @@ This custom image introduces the following enhancements:
 
 For more details and to know how to use the new the features included read the [wiki](https://github.com/sejerpz/alabs-mod-custom-images/wiki)
 
-# How to Install the MOD Dwarf aLabs image
+# How to Install the Starless image
 
-To test this new image, follow the standard update procedure for the MOD Dwarf as described in the official documentation:
+To test this new image, follow the standard update procedure of your device as described in the official documentation:
 
-🔗 [Official MOD Dwarf Releases Guide](https://wiki.mod.audio/wiki/Releases)
+🔗 [Official MOD Releases Guide](https://wiki.mod.audio/wiki/Releases)
 
 ## Installation Steps
 
 1. Read the **manual update procedure** on the documentation page.  
-2. Put your Dwarf into **update mode** as described.  
+2. Put your device into **update mode** as described.  
 3. Follow the instructions provided in the guide.  
-   - **Important:** Instead of downloading a standard image, download the latest **MOD Dwarf aLabs image** from the releases of this git repository [aLabs Releases](https://github.com/sejerpz/alabs-mod-custom-images/releases).
+   - **Important:** Instead of downloading a standard image, download the latest **Starless image of your device** (`moddwarf-…`, `modduox-…` or `modduo-…`) from the releases of this git repository [aLabs Releases](https://github.com/sejerpz/alabs-mod-custom-images/releases).
 
 ## Reverting to an Official Image
 
@@ -50,10 +54,10 @@ The images adopt a simple monotone version convention: each release is tagged wi
 
 For example:
 
-`v1.13.5.3315-stls17`
+`v1.14.0.3370-stls19`
 
-base mod image version: **1.13.5.3315**
-stls version: **17**
+base mod image version: **1.14.0.3370**
+stls version: **19**
 
 # Building the image
 
