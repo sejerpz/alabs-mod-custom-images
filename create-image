@@ -61,6 +61,7 @@ if [ "$1" = "tag" ]
 	echo "TAGGING GIT REPOSITORIES"
 	git -C $ALABS_ROOT/mod-dwarf-controller tag -a $TAG_NAME -m "aLabs release $TAG_VERSION"
 	git -C $ALABS_ROOT/mod-duox-controller tag -a $TAG_NAME -m "aLabs release $TAG_VERSION"
+	git -C $ALABS_ROOT/mod-duo-controller tag -a $TAG_NAME -m "aLabs release $TAG_VERSION"
 	git -C $ALABS_ROOT/mod-ui tag -a $TAG_NAME -m "aLabs release $TAG_VERSION"
 	git -C $ALABS_ROOT/mod-host tag -a $TAG_NAME -m "aLabs release $TAG_VERSION"
 	git -C $ALABS_ROOT/mod-system-control tag -a $TAG_NAME -m "aLabs release $TAG_VERSION"
@@ -126,6 +127,7 @@ if [[ "$2" == "update" || "$2" == "release" ]]
 	git submodule foreach -q 'git submodule update --init --recursive'
 	git add $ALABS_ROOT/mod-dwarf-controller
 	git add $ALABS_ROOT/mod-duox-controller
+	git add $ALABS_ROOT/mod-duo-controller
 	git add $ALABS_ROOT/mod-ui
 	git add $ALABS_ROOT/mod-host
 	git add $ALABS_ROOT/mod-system-control

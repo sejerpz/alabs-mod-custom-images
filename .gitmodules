@@ -22,3 +22,7 @@
 	path = mod-duox-controller
 	url = git@github.com:sejerpz/mod-duox-controller.git
 	branch = devel
+[submodule "mod-duo-controller"]
+	path = mod-duo-controller
+	url = git@github.com:sejerpz/mod-duo-controller.git
+	branch = devel
